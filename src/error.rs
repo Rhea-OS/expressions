@@ -7,7 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-
+    ParseError(String),
 }
 
 impl Display for Error {
@@ -16,6 +16,4 @@ impl Display for Error {
     }
 }
 
-impl Err for Error {
-
-}
+impl Err for Error {}
