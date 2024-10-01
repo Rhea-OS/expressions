@@ -1,108 +1,98 @@
-use std::collections::{BTreeMap, HashMap};
+mod key;
+mod call;
+mod list;
+mod literal;
+mod associative_array;
+mod expression;
+mod value;
+
+use std::collections::BTreeMap;
+use std::ops::Deref;
 use std::rc::Rc;
-use nom::{Finish, IResult};
-use nom::error::ErrorKind::Many;
-use crate::error::*;
+use nom::IResult;
+use crate::{
+    error::*,
+    parse::value::Value,
+    parse::value::OPERATORS
+};
+use crate::parse::value::value_parser;
 
-pub struct AST<TokenType: Token> {
-    raw: String,
-    offset: usize,
-    token: TokenType,
+mod parser {
+    pub use nom::branch::*;
+    pub use nom::combinator::*;
+    pub use nom::bytes::complete::*;
+    pub use nom::sequence::tuple;
 }
 
-trait Token {
-    fn parse(input: &str) -> IResult<Self, &str>;
-}
+struct Context(Rc<ContextInner>);
 
-struct Expression {}
-
-struct Call {
-    name: String,
-    arguments: Vec<Expression>
-}
-
-enum Literal {
-    Name(String),
-    Number(f64),
-    String(String),
-    Address(String)
-}
-
-struct List {
-    items: Vec<Expression>
-}
-
-struct AssociateArray {
-    items: Vec<(Key, Expression)>
-}
-
-enum Key {
-    Name(String),
-    String(String)
-}
-
-pub fn parse(str: impl AsRef<str>) -> Result<AST<Expression>> {
-    if let Ok((expr, _)) = Expression::parse(str.as_ref()).finish() {
-        Ok(AST {
-            raw: str.as_ref().to_owned(),
-            offset: 0,
-            token: expr
-        })
-    } else {
-        Err(Error::ParseError(str.as_ref().to_owned()))
+impl Context {
+    fn new(precedences: Vec<i64>, operators: BTreeMap<i64, Vec<&'static str>>) -> Self {
+        Self(Rc::new(ContextInner {
+            precedences,
+            operators
+        }))
     }
 }
 
-/// Operators is a static map of ("Token", "Precedence", "NumOperands")
-static OPERATORS: &'static [(&'static str, i64, u64)] = &[
-    ("==", 1, 2),
-    ("!=", 1, 2),
-    ("&&", 3, 2),
-    ("||", 3, 2),
-    ("!", 3, 1),
-    (">", 5, 2),
-    ("<", 5, 2),
-    ("+", 10, 2),
-    ("-", 10, 2),
-    ("*", 15, 2),
-    ("/", 15, 2),
-    ("%", 15, 2),
-    ("^", 20, 2),
-];
+impl Deref for Context {
+    type Target = ContextInner;
 
-impl Token for Expression {
-    fn parse(str: &str) -> IResult<Self, &str> {
-        // Group the operators by precedence into a BTreeMap so it's sorted.
-        let operators = OPERATORS.iter()
-            .fold(BTreeMap::new(), |mut accumulator, (token, precedence, operands)| {
-                if !accumulator.contains_key(precedence) {
-                    accumulator.insert(*precedence, vec![]);
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Clone for Context  {
+    fn clone(&self) -> Self {
+        Context(Rc::clone(&self.0))
+    }
+}
+
+struct ContextInner {
+    operators: BTreeMap<i64, Vec<&'static str>>,
+    precedences: Vec<i64>,
+}
+
+impl Context {
+    fn get_operators_for_rank<'input, 'cx: 'input>(&'cx self, rank: usize) -> Option<impl Fn(&'input str) -> IResult<&'input str, &'input str>> {
+        let operators = self.precedences.get(rank)
+            .and_then(|precedence| self.operators.get(precedence))?;
+
+        Some(|input| {
+            let mut last_err = None;
+
+            for &alt in operators.iter() {
+                match nom::bytes::complete::tag(alt)(input) {
+                    Ok(result) => return Ok(result),
+                    Err(error) => {
+                        last_err = Some(error);
+                    }
                 }
-
-                accumulator.get_mut(precedence).unwrap().push(token.clone());
-
-                return accumulator;
-            });
-
-        let precedences = operators.keys().copied().collect::<Vec<_>>();
-
-        fn expr(p: usize) -> fn(&str) -> IResult<Expression, &str> {
-            if let Some(precedence) = precedences.get(p) {
-                // expr(p=p+1) [operators[p]] expr(p=p) | expr(p+1)
-                |input: &str| -> IResult<Expression, &str> {
-                    nom::sequence::tuple(expr(p + 1), )(input)
-                }
-            } else {
-                // ( expr(p=0) ) | Literal | Call | List | AssociativeArray
             }
-        }
 
-        expr(0)(str)
+            Err(last_err.unwrap_or(nom::Err::Error(nom::error::Error { input, code: nom::error::ErrorKind::NonEmpty })))
+        })
     }
 }
 
-impl Token for Literal {
-    fn parse(input: &str) -> IResult<Self, &str> {
-        todo!()
-    }
+pub fn parse(str: impl AsRef<str>) -> Result<Value> {
+    // Group the operators by precedence into a BTreeMap so it's sorted.
+    let operators = OPERATORS.iter()
+        .fold(BTreeMap::new(), |mut accumulator, (token, precedence, _num_operands)| {
+            if !accumulator.contains_key(precedence) {
+                accumulator.insert(*precedence, vec![]);
+            }
+
+            accumulator.get_mut(precedence).unwrap().push(token.clone());
+
+            return accumulator;
+        });
+
+    value_parser(Context::new(
+        operators.keys().copied().collect::<Vec<_>>(),
+        operators
+    ))(str.as_ref())
+        .map(|(_, value)| value)
+        .map_err(|_| Error::ParseError(str.as_ref().to_owned()))
 }

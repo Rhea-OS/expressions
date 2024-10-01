@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 wasm-bindgen = "0.2.93"
-nom = "8.0.0-alpha2"
+nom = "7.1.3"
