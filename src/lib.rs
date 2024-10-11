@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod error;
 mod test;
 mod parse;
