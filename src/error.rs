@@ -47,13 +47,11 @@ macro_rules! multi_error {
     }
 }
 
-pub type NomError = nom::Err<nom::error::Error<&'static str>>;
-
 multi_error! { global();
     ManualError = crate::error::ManualError;
     IoError = std::io::Error;
 
-    ParseError = super::NomError
+    ParserError = nom::Err<nom::error::Error<String>>
 }
 
 pub type Result<T> = ::std::result::Result<T, global::Error>;

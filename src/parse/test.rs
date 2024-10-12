@@ -20,7 +20,7 @@ pub mod test {
                 Value::Literal(Literal::Number(1.0)),
                 Value::Literal(Literal::Number(2.0)),
             ],
-            operator: "+"
+            operator: "+".to_owned()
         }));
 
         Ok(())
@@ -37,17 +37,17 @@ pub mod test {
                         Value::Literal(Literal::Number(1.0)),
                         Value::Literal(Literal::Number(2.0)),
                     ],
-                    operator: "*"
+                    operator: "*".to_owned()
                 }),
                 Value::Expression(Expression {
                     operands: vec![
                         Value::Literal(Literal::Number(3.0)),
                         Value::Literal(Literal::Number(2.0)),
                     ],
-                    operator: "^"
+                    operator: "^".to_owned()
                 })
             ],
-            operator: "+"
+            operator: "+".to_owned()
         }));
 
         Ok(())
@@ -67,14 +67,14 @@ pub mod test {
                                 Value::Literal(Literal::Number(2.0)),
                                 Value::Literal(Literal::Number(3.0)),
                             ],
-                            operator: "+"
+                            operator: "+".to_owned()
                         }),
                         Value::Literal(Literal::Number(4.0)),
                     ],
-                    operator: "^"
+                    operator: "^".to_owned()
                 })
             ],
-            operator: "*"
+            operator: "*".to_owned()
         }));
 
         Ok(())

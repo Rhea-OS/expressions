@@ -2,6 +2,7 @@ extern crate core;
 
 pub mod error;
 mod parse;
+mod eval;
 
 pub use crate::error::*;
 

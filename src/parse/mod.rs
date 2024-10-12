@@ -8,23 +8,23 @@ mod value;
 mod test;
 
 use crate::{
-    parse::value::value_parser,
     error::*,
+    parse::value::value_parser,
     parse::value::Value,
-    parse::value::OPERATORS
+    parse::value::OPERATORS,
 };
 use std::{
     collections::BTreeMap,
     ops::Deref,
-    rc::Rc
+    rc::Rc,
 };
 
 pub(super) mod parser {
     pub use nom::branch::*;
-    pub use nom::multi::*;
     pub use nom::bytes::complete::*;
     pub use nom::character::complete::*;
     pub use nom::combinator::*;
+    pub use nom::multi::*;
     pub use nom::sequence::*;
 }
 
@@ -58,10 +58,9 @@ struct ContextInner {
     precedences: Vec<i64>,
 }
 
-impl Context {
-}
+impl Context {}
 
-pub fn parse(str: &'static str) -> Result<Value> {
+pub fn parse(str: &str) -> Result<Value> {
     // Group the operators by precedence into a BTreeMap so it's sorted.
     let operators = OPERATORS.iter()
         .fold(BTreeMap::new(), |mut accumulator, (token, precedence, _num_operands)| {
@@ -74,10 +73,22 @@ pub fn parse(str: &'static str) -> Result<Value> {
             return accumulator;
         });
 
-    value_parser(Context::new(
+    let parser = value_parser(Context::new(
         operators.keys().copied().collect::<Vec<_>>(),
         operators,
-    ))(str)
-        .map(|(_, value)| value)
-        .map_err(|err| crate::error::NomError::from(err).into())
+    ));
+
+    parser(str)
+        .map(|(_, v)| v)
+        .map_err(|err| match err {
+            nom::Err::Error(err) => nom::Err::Error(nom::error::Error {
+                input: err.input.to_owned(),
+                code: err.code,
+            }),
+            nom::Err::Failure(err) => nom::Err::Failure(nom::error::Error {
+                input: err.input.to_owned(),
+                code: err.code,
+            }),
+            nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
+        }.into())
 }
