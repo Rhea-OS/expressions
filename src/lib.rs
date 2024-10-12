@@ -1,8 +1,9 @@
 extern crate core;
 
 pub mod error;
-mod test;
 mod parse;
+
+pub use crate::error::*;
 
 pub struct Address {
     

@@ -25,7 +25,7 @@ pub(super) mod parser {
     pub use nom::bytes::complete::*;
     pub use nom::character::complete::*;
     pub use nom::combinator::*;
-    pub use nom::sequence::tuple;
+    pub use nom::sequence::*;
 }
 
 struct Context(Rc<ContextInner>);
@@ -79,5 +79,5 @@ pub fn parse(str: &'static str) -> Result<Value> {
         operators,
     ))(str)
         .map(|(_, value)| value)
-        .map_err(|_| Error::ParseError(str.to_owned()))
+        .map_err(|err| crate::error::NomError::from(err).into())
 }

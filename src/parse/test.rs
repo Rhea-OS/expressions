@@ -3,13 +3,18 @@ pub mod test {
     use crate::error::*;
     use crate::parse::parse;
 
-    use crate::parse::*;
     use crate::parse::expression::Expression;
     use crate::parse::literal::Literal;
+    use crate::parse::*;
+    use crate::parse::call::Call;
+    use crate::parse::key::Key;
+    use crate::parse::list::List;
 
     #[test]
     pub fn test_extremely_simple_expression() -> Result<()> {
-        assert_eq!(parse("1+2")?, Value::Expression(Expression {
+        let expr = parse("1+2");
+
+        assert_eq!(expr?, Value::Expression(Expression {
             operands: vec![
                 Value::Literal(Literal::Number(1.0)),
                 Value::Literal(Literal::Number(2.0)),
@@ -22,7 +27,9 @@ pub mod test {
 
     #[test]
     pub fn test_oder_of_operations() -> Result<()> {
-        assert_eq!(parse("1*2+3^2")?, Value::Expression(Expression {
+        let expr = parse("1*2+3^2");
+
+        assert_eq!(expr?, Value::Expression(Expression {
             operands: vec![
                 Value::Expression(Expression {
                     operands: vec![
@@ -47,18 +54,9 @@ pub mod test {
 
     #[test]
     pub fn test_call() -> Result<()> {
-        assert_eq!(parse("hello()")?, Value::Expression(Expression {
-            operands: vec![
-                Value::Expression(Expression {
-                    operands: vec![
-                        Value::Literal(Literal::Number(1.0)),
-                        Value::Literal(Literal::Number(2.0)),
-                    ],
-                    operator: "*"
-                }),
-                Value::Literal(Literal::Number(3.0))
-            ],
-            operator: "+"
+        assert_eq!(parse("hello(1)")?, Value::Call(Call {
+            name: Key::Name("hello".to_owned()),
+            arguments: vec![Value::Literal(Literal::Number(1.0))],
         }));
 
         Ok(())
