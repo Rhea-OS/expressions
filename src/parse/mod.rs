@@ -1,11 +1,11 @@
-mod key;
-mod call;
-mod list;
-mod literal;
-mod associative_array;
-mod expression;
-mod value;
-mod test;
+pub(crate) mod key;
+pub(crate) mod call;
+pub(crate) mod list;
+pub(crate) mod literal;
+pub(crate) mod associative_array;
+pub(crate) mod expression;
+pub(crate) mod value;
+pub(crate) mod test;
 
 use crate::{
     error::*,
@@ -13,11 +13,14 @@ use crate::{
     parse::value::Value,
     parse::value::OPERATORS,
 };
-use std::{
+use alloc::{
+    borrow::ToOwned,
     collections::BTreeMap,
-    ops::Deref,
     rc::Rc,
+    vec,
+    vec::Vec
 };
+use core::ops::Deref;
 
 pub(super) mod parser {
     pub use nom::branch::*;
@@ -27,6 +30,17 @@ pub(super) mod parser {
     pub use nom::multi::*;
     pub use nom::sequence::*;
 }
+
+pub(crate) mod objects {
+    pub(crate) use crate::parse::value::Value;
+    pub(crate) use crate::parse::literal::Literal;
+    pub(crate) use crate::parse::expression::Expression;
+    pub(crate) use crate::parse::call::Call;
+    pub(crate) use crate::parse::key::Key;
+    pub(crate) use crate::parse::list::List;
+    pub(crate) use crate::parse::associative_array::AssociativeArray;
+}
+
 
 struct Context(Rc<ContextInner>);
 

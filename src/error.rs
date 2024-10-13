@@ -1,7 +1,10 @@
+
 macro_rules! multi_error {
     ($name:ident($($manual:ident),*); $($err:ident = $obj:ty);*) => {
         pub mod $name {
+            #[cfg(test)]
             use backtrace::Backtrace;
+            use alloc::string::String;
 
             #[derive(Debug)]
             pub enum Inner {
@@ -9,13 +12,15 @@ macro_rules! multi_error {
                 $($manual),*
             }
 
-            impl std::fmt::Display for Inner { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { std::fmt::Debug::fmt(self, f) } }
-            impl std::error::Error for Inner {}
+            impl core::fmt::Display for Inner { fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Debug::fmt(self, f) } }
+            impl core::error::Error for Inner {}
 
             $(impl From<$obj> for Inner { fn from(value: $obj) -> Self { Self::$err(value) } })*
 
             pub struct Error {
                 inner: Inner,
+
+                #[cfg(test)]
                 backtrace: Backtrace
             }
 
@@ -23,24 +28,29 @@ macro_rules! multi_error {
                 fn from(err: Err) -> Self {
                     Self {
                         inner: err.into(),
+
+                        #[cfg(test)]
                         backtrace: Backtrace::new()
                     }
                 }
             }
 
-            impl std::error::Error for Error {}
-            impl std::fmt::Display for Error {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { std::fmt::Debug::fmt(self, f) }
+            impl core::error::Error for Error {}
+            impl core::fmt::Display for Error {
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { core::fmt::Debug::fmt(self, f) }
             }
 
-            impl std::fmt::Debug for Error {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{:?}\n", &self.inner)?;
+            impl alloc::fmt::Debug for Error {
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    #[cfg(test)]
                     match std::env::var("RUST_BACKTRACE").as_ref().map(|i| i.as_ref()) {
-                        Ok("full") => write!(f, "{:#?}", self.backtrace),
-                        Ok("1") => write!(f, "{:?}", self.backtrace),
+                        Ok("full") => write!(f, "{:?}\n{:#?}", &self.inner, self.backtrace),
+                        Ok("1") => write!(f, "{:?}\n{:?}", &self.inner, self.backtrace),
                         _ => write!(f, ""),
                     }
+
+                    #[cfg(not(test))]
+                    write!(f, "{:#?}", &self.inner)
                 }
             }
         }
@@ -49,21 +59,27 @@ macro_rules! multi_error {
 
 multi_error! { global();
     ManualError = crate::error::ManualError;
-    IoError = std::io::Error;
+    // IoError = std::io::Error;
 
     ParserError = nom::Err<nom::error::Error<String>>
 }
 
-pub type Result<T> = ::std::result::Result<T, global::Error>;
+pub type Result<T> = core::result::Result<T, global::Error>;
+
+use alloc::string::String;
 pub use global::Error;
 
 #[derive(Debug, Clone)]
 pub enum ManualError {
+    NoSuchOperator(String),
+    NoSuchValue(String),
+    OperationNotValidForType(String),
+    CannotCallNonFunctionObjet(),
 }
 
-impl std::error::Error for ManualError {}
-impl std::fmt::Display for ManualError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(self, f)
+impl core::error::Error for ManualError {}
+impl core::fmt::Display for ManualError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(self, f)
     }
 }
