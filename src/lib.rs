@@ -6,11 +6,13 @@ extern crate alloc;
 extern crate core;
 
 pub mod error;
-mod parse;
-mod eval;
+pub mod parse;
+pub mod eval;
+mod vec;
 
 pub use crate::error::*;
 use crate::eval::Object;
+pub use crate::eval::context::Context;
 
 pub trait Row {
     fn fields(&self) -> impl Iterator<Item=&str> + Clone;

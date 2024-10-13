@@ -75,6 +75,7 @@ pub enum ManualError {
     NoSuchValue(String),
     OperationNotValidForType(String),
     CannotCallNonFunctionObjet(),
+    InsufficientOperands(String),
 }
 
 impl core::error::Error for ManualError {}

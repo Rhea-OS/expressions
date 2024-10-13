@@ -94,6 +94,7 @@ mod tests {
 
         Ok(())
     }
+    
     #[test]
     fn test_associative_array() -> Result<()> {
         let cx = Context::new(ManualProvider::<TwoColumns> {
@@ -109,7 +110,6 @@ mod tests {
 
         Ok(())
     }
-
 
     #[test]
     fn test_list_index() -> Result<()> {

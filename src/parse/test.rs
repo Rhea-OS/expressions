@@ -93,6 +93,16 @@ pub mod test {
     }
 
     #[test]
+    pub fn test_string() -> Result<()> {
+        assert_matches!(Key::parse(r#""Hello World""#), Ok(("", Key::String(name))) if name == "Hello World");
+        assert_matches!(Key::parse(r#""Hello\nWorld""#), Ok(("", Key::String(name))) if name == "Hello\nWorld");
+        assert_matches!(Key::parse(r#""Hello\"World""#), Ok(("", Key::String(name))) if name == "Hello\"World");
+        assert_matches!(Key::parse(r#""Hello"World""#), Ok(("World\"", Key::String(name))) if name == "Hello");
+
+        Ok(())
+    }
+
+    #[test]
     pub fn test_call() -> Result<()> {
         assert_eq!(parse("hello(1)")?, Value::Call(Call {
             name: Key::Name("hello".to_owned()),

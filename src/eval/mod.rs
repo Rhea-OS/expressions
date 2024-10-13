@@ -1,6 +1,6 @@
 mod test;
-mod context;
-mod operators;
+pub mod context;
+pub mod operators;
 
 use alloc::{
     string::String,
@@ -29,6 +29,18 @@ pub enum Object {
 impl Object {
     pub fn function(fun: impl Fn(Vec<Object>) -> Result<Object> + 'static) -> Self {
         Self::Function(Rc::new(Box::new(fun)))
+    }
+
+    pub fn datatype(&self) -> &str {
+        match self {
+            Object::Nothing => "nothing",
+            Object::Boolean(_) => "boolean",
+            Object::Number(_) => "number",
+            Object::String(_) => "string",
+            Object::List(_) => "list",
+            Object::AssociativeArray(_) => "associative_array",
+            Object::Function(_) => "function",
+        }
     }
 }
 
