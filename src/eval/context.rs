@@ -188,6 +188,6 @@ where
     }
 
     pub fn evaluate(&self, expression: impl AsRef<str>) -> Result<Object> {
-        Ok(self.evaluate_value(parse(expression.as_ref())?)?)
+        Ok(self.evaluate_value(self.parse(expression.as_ref())?)?)
     }
 }
