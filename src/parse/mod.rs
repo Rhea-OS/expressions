@@ -7,7 +7,7 @@ pub(crate) mod expression;
 pub(crate) mod value;
 pub(crate) mod test;
 
-use crate::{error::*, parse::value::value_parser, parse::value::Value, parse::value::OPERATORS, Context, DataSource};
+use crate::{error::*, parse::value::value_parser, parse::value::Value, Context, DataSource};
 use alloc::{
     borrow::ToOwned,
     collections::BTreeMap,
@@ -93,16 +93,20 @@ impl<Provider: DataSource> Context<Provider> {
 
         parser(str)
             .map(|(_, v)| v)
-            .map_err(|err| match err {
-                nom::Err::Error(err) => nom::Err::Error(nom::error::Error {
-                    input: err.input.to_owned(),
-                    code: err.code,
-                }),
-                nom::Err::Failure(err) => nom::Err::Failure(nom::error::Error {
-                    input: err.input.to_owned(),
-                    code: err.code,
-                }),
-                nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
-            }.into())
+            .map_err(|err| stringify(err).into())
     }
+}
+
+fn stringify(err: nom::Err<nom::error::Error<&str>>) -> nom::Err<nom::error::Error<String>> {
+    match err {
+        nom::Err::Error(err) => nom::Err::Error(nom::error::Error {
+            input: err.input.to_owned(),
+            code: err.code,
+        }),
+        nom::Err::Failure(err) => nom::Err::Failure(nom::error::Error {
+            input: err.input.to_owned(),
+            code: err.code,
+        }),
+        nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
+    }.into()
 }

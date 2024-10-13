@@ -1,6 +1,8 @@
 use expression::{Context, DataSource, Row};
 use expression::eval::Object;
 
+/// This struct implements a friendly way to represent a row of a table.
+/// The `Row` trait marks this structure with the necessary methods to be useful
 struct ExampleRow {
     col1: String,
     col2: f64

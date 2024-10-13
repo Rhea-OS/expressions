@@ -1,25 +1,16 @@
 use alloc::vec::Vec;
 
-/// Abstracts something which can push Item into self
 pub trait Push {
-    /// Item stocked in the collection
     type Item;
-    /// Represent a way to access Item in the collection directly after push
     type ItemView<'a>
     where
         Self: 'a;
 
-    /// push an item into a collection, no guarantee on ordering.
-    fn push<'a>(&'a mut self, item: Self::Item) -> Self::ItemView<'a>;
+    fn push(&mut self, item: Self::Item) -> Self::ItemView<'_>;
 }
 
-/// This is very usefull to be use on combinator like fold.
-/// For example, `.fold_bounds(.., Vec::new, Acc::acc)`.
 pub trait Acc {
-    /// Item stocked in the collection
     type Item;
-
-    /// Accumulate item into Self. For example, for a vector that simply a push.
     fn acc(self, item: Self::Item) -> Self;
 }
 

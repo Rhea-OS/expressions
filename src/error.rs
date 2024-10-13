@@ -64,7 +64,7 @@ multi_error! { global();
     ParserError = nom::Err<nom::error::Error<String>>
 }
 
-pub type Result<T> = core::result::Result<T, global::Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 use alloc::string::String;
 pub use global::Error;

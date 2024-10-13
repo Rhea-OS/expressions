@@ -1,9 +1,9 @@
-use crate::eval::operators::get_standard_operators;
 use crate::{
+    eval::operators::get_standard_operators,
     error::*,
     eval::Object,
     parse::objects::*,
-    DataSource,
+    DataSource
 };
 use alloc::{
     borrow::ToOwned,
@@ -13,15 +13,31 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use nom::lib::std::collections::HashMap;
+use wasm_bindgen::__rt::std::collections::HashMap;
 
+/// # Context
+///
+/// Stores and holds data relevant to expression parsing and evaluation.
+///
+/// Contexts depend on a data source which provides data for use within expressions.
+/// Throughout these docs, the `EmptyProvider` is used as a placeholder.
+/// In real life, you'll need to [implement your own](DataSource).
+///
+/// ## Example
+/// ```rust
+/// use expression::{Context, EmptyProvider};
+///
+/// let cx = Context::new(EmptyProvider::new());
+///
+/// assert_eq!(cx.evaluate(r#"2*5"#).unwrap(), 10.0);
+/// ```
 pub struct Context<Provider: DataSource> {
     globals: HashMap<String, Object>,
     data_provider: Box<Provider>,
     pub(crate) operators: HashMap<String, Operator>,
 }
 
-pub(crate) struct Operator {
+pub struct Operator {
     handler: Box<dyn Fn(&[Object]) -> Result<Object>>,
     symbol: String,
     pub(crate) precedence: i64,
@@ -96,11 +112,55 @@ where
         }
     }
 
+    /// # Globals
+    /// The `Context` is where functions, variables and other values are registered.
+    /// These may allow interaction with the host system, mathematical functions or other useful utility functions.
+    ///
+    /// ```rust
+    /// use expression::{
+    ///     Context,
+    ///     DataSource,
+    ///     EmptyProvider,
+    ///     Row,
+    ///     eval::Object
+    /// };
+    ///
+    /// let cx = Context::new(EmptyProvider::new()).with_global("PI", Object::Number(std::f64::consts::PI));
+    ///
+    /// assert_eq!(cx.evaluate(r#"PI"#).unwrap(), std::f64::consts::PI);
+    /// ```
     pub fn with_global(mut self, name: impl AsRef<str>, global: Object) -> Self {
         self.globals.insert(name.as_ref().to_string(), global);
         self
     }
 
+    /// # Operator Overloads
+    /// Operators are defined on the context object. These can be overridden, to produce custom operator behaviour.
+    ///
+    /// ```rust
+    /// use expression::{
+    ///     Context,
+    ///     DataSource,
+    ///     EmptyProvider,
+    ///     Row,
+    ///     eval::Object,
+    ///     eval::context::OperatorBuilder
+    /// };
+    ///
+    /// let cx = Context::new(EmptyProvider::new())
+    ///     .with_operator(OperatorBuilder::new()
+    ///         .symbol("~")
+    ///         .operands(1)
+    ///         .precedence(10)
+    ///         .handler(|args| {
+    ///
+    ///             // Define an operator which nullifies the value
+    ///             Ok(Object::Nothing)
+    ///         })
+    ///         .build());
+    ///
+    /// assert_eq!(cx.evaluate(r#"~10"#).unwrap(), Object::Nothing);
+    /// ```
     pub fn with_operator(mut self, operator: Operator) -> Self {
         self.operators.insert(operator.symbol.clone(), operator);
         self

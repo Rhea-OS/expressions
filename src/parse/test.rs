@@ -11,6 +11,23 @@ pub mod test {
     use crate::parse::associative_array::AssociativeArray;
     use crate::parse::list::List;
 
+    /// Operators is a static map of ("Token", "Precedence", "NumOperands")
+    static OPERATORS: &'static [(&'static str, i64, u64)] = &[
+        ("==", 1, 2),
+        ("!=", 1, 2),
+        ("&&", 3, 2),
+        ("||", 3, 2),
+        ("!", 3, 1),
+        (">", 5, 2),
+        ("<", 5, 2),
+        ("+", 10, 2),
+        ("-", 10, 2),
+        ("*", 15, 2),
+        ("/", 15, 2),
+        ("%", 15, 2),
+        ("^", 20, 2),
+    ];
+
     fn parse(input: impl AsRef<str>) -> Result<Value> {
         // Group the operators by precedence into a BTreeMap so it's sorted.
         let operators = OPERATORS.iter()
@@ -33,17 +50,7 @@ pub mod test {
 
         parser(input.as_ref())
             .map(|(_, v)| v)
-            .map_err(|err| match err {
-                nom::Err::Error(err) => nom::Err::Error(nom::error::Error {
-                    input: err.input.to_owned(),
-                    code: err.code,
-                }),
-                nom::Err::Failure(err) => nom::Err::Failure(nom::error::Error {
-                    input: err.input.to_owned(),
-                    code: err.code,
-                }),
-                nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
-            }.into())
+            .map_err(|err| stringify(err).into())
     }
 
     #[test]

@@ -11,7 +11,6 @@ use alloc::{
     rc::Rc
 };
 use core::fmt::{Debug, Display, Formatter};
-use core::ops::Deref;
 use wasm_bindgen::__rt::std::collections::HashMap;
 use crate::error::*;
 
@@ -50,7 +49,7 @@ impl Display for Object {
             Object::Boolean(v) => if *v { "true".to_owned() } else { "false".to_owned() },
             Object::Number(v) => v.to_string(),
             Object::String(v) => v.to_owned(),
-            Object::Function(fun) => "fn()".to_owned(),
+            Object::Function(_) => "fn()".to_owned(),
             _ => "[Object object]".to_owned(),
         })
     }
