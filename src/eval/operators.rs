@@ -14,66 +14,79 @@ pub(crate) fn get_standard_operators() -> Vec<Operator> {
     vec![
         OperatorBuilder::new()
             .symbol("==")
+            .precedence(1)
             .handler(compare)
             .build(),
 
         OperatorBuilder::new()
             .symbol("!=")
+            .precedence(1)
             .handler(inv_compare)
             .build(),
 
         OperatorBuilder::new()
             .symbol("&&")
+            .precedence(3)
             .handler(and)
             .build(),
 
         OperatorBuilder::new()
             .symbol("||")
+            .precedence(3)
             .handler(or)
             .build(),
 
         OperatorBuilder::new()
             .symbol("!")
+            .precedence(3)
             .handler(not)
             .build(),
 
         OperatorBuilder::new()
             .symbol(">")
+            .precedence(5)
             .handler(greater)
             .build(),
 
         OperatorBuilder::new()
             .symbol("<")
+            .precedence(5)
             .handler(less)
             .build(),
 
         OperatorBuilder::new()
             .symbol("+")
+            .precedence(10)
             .handler(add)
             .build(),
 
         OperatorBuilder::new()
             .symbol("-")
+            .precedence(10)
             .handler(subtract)
             .build(),
 
         OperatorBuilder::new()
             .symbol("*")
+            .precedence(15)
             .handler(multiply)
             .build(),
 
         OperatorBuilder::new()
             .symbol("/")
+            .precedence(15)
             .handler(divide)
             .build(),
 
         OperatorBuilder::new()
             .symbol("%")
+            .precedence(15)
             .handler(modulo)
             .build(),
 
         OperatorBuilder::new()
             .symbol("^")
+            .precedence(20)
             .handler(exponent)
             .build(),
     ]
