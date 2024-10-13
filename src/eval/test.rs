@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use alloc::vec;
-    use core::assert_matches::assert_matches;
     use crate::{
         eval::context::Context,
         error::*,
@@ -9,7 +8,6 @@ mod tests {
         DataSource,
         Row
     };
-    use crate::parse::key::Key;
 
     pub struct ManualProvider<Rows: Row> {
         rows: Vec<Rows>,

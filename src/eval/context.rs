@@ -3,7 +3,6 @@ use crate::{
     error::*,
     eval::Object,
     parse::objects::*,
-    parse::parse,
     DataSource,
 };
 use alloc::{
@@ -19,20 +18,20 @@ use nom::lib::std::collections::HashMap;
 pub struct Context<Provider: DataSource> {
     globals: HashMap<String, Object>,
     data_provider: Box<Provider>,
-    operators: HashMap<String, Operator>,
+    pub(crate) operators: HashMap<String, Operator>,
 }
 
 pub(crate) struct Operator {
     handler: Box<dyn Fn(&[Object]) -> Result<Object>>,
     symbol: String,
-    precedence: i32,
+    pub(crate) precedence: i64,
     operands: usize,
 }
 
 pub struct OperatorBuilder {
     handler: Option<Box<dyn Fn(&[Object]) -> Result<Object>>>,
     symbol: Option<String>,
-    precedence: i32,
+    precedence: i64,
     operands: usize,
 }
 
@@ -41,7 +40,7 @@ impl OperatorBuilder {
         Self {
             handler: None,
             symbol: None,
-            precedence: i32::MAX,
+            precedence: i64::MAX,
             operands: 2,
         }
     }
@@ -56,7 +55,7 @@ impl OperatorBuilder {
         self
     }
 
-    pub fn precedence(mut self, precedence: i32) -> Self {
+    pub fn precedence(mut self, precedence: i64) -> Self {
         self.precedence = precedence;
         self
     }

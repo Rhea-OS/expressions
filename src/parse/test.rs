@@ -2,7 +2,6 @@
 pub mod test {
     use core::assert_matches::assert_matches;
     use crate::error::*;
-    use crate::parse::parse;
 
     use crate::parse::call::Call;
     use crate::parse::expression::Expression;
@@ -11,6 +10,41 @@ pub mod test {
     use crate::parse::*;
     use crate::parse::associative_array::AssociativeArray;
     use crate::parse::list::List;
+
+    fn parse(input: impl AsRef<str>) -> Result<Value> {
+        // Group the operators by precedence into a BTreeMap so it's sorted.
+        let operators = OPERATORS.iter()
+            .fold(BTreeMap::new(), |mut accumulator, (token, precedence, _num_operands)| {
+                if !accumulator.contains_key(precedence) {
+                    accumulator.insert(*precedence, vec![]);
+                }
+
+                accumulator.get_mut(precedence).unwrap().push(*token);
+
+                return accumulator;
+            });
+
+        let parser = value_parser(ParseContext::new(
+            operators.keys().copied().collect::<Vec<_>>(),
+            operators.into_iter()
+                .map(|(precedence, tokens)| (precedence, tokens.into_iter().map(|i| i.to_owned()).collect::<Vec<_>>()))
+                .collect(),
+        ));
+
+        parser(input.as_ref())
+            .map(|(_, v)| v)
+            .map_err(|err| match err {
+                nom::Err::Error(err) => nom::Err::Error(nom::error::Error {
+                    input: err.input.to_owned(),
+                    code: err.code,
+                }),
+                nom::Err::Failure(err) => nom::Err::Failure(nom::error::Error {
+                    input: err.input.to_owned(),
+                    code: err.code,
+                }),
+                nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
+            }.into())
+    }
 
     #[test]
     pub fn test_extremely_simple_expression() -> Result<()> {
