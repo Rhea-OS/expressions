@@ -1,4 +1,5 @@
 #![feature(iterator_try_reduce)]
+#![feature(assert_matches)]
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;

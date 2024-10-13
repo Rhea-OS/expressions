@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use alloc::vec;
+    use core::assert_matches::assert_matches;
     use crate::{
         eval::context::Context,
         error::*,
@@ -8,6 +9,7 @@ mod tests {
         DataSource,
         Row
     };
+    use crate::parse::key::Key;
 
     pub struct ManualProvider<Rows: Row> {
         rows: Vec<Rows>,
@@ -73,6 +75,70 @@ mod tests {
         }).with_global("sum", Object::function(|args| operators::add(&args)));
 
         assert_eq!(cx.evaluate(r#"sum(1,2)"#)?, 3.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_list() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_owned(), "Column 2".to_owned()],
+            rows: vec![],
+        });
+
+        assert_eq!(cx.evaluate(r#"[1,2,3]"#)?, Object::List(vec![
+            Object::Number(1.0),
+            Object::Number(2.0),
+            Object::Number(3.0)
+        ]));
+
+        Ok(())
+    }
+    #[test]
+    fn test_associative_array() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_owned(), "Column 2".to_owned()],
+            rows: vec![],
+        });
+
+        assert_eq!(cx.evaluate(r#"[a=1,b=2,c=3]"#)?, Object::AssociativeArray(vec![
+            ("a".to_owned(), Object::Number(1.0)),
+            ("b".to_owned(), Object::Number(2.0)),
+            ("c".to_owned(), Object::Number(3.0)),
+        ].into_iter().collect()));
+
+        Ok(())
+    }
+
+
+    #[test]
+    fn test_list_index() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_owned(), "Column 2".to_owned()],
+            rows: vec![],
+        }).with_global("list", Object::List(vec![
+            Object::Number(1.0),
+            Object::Number(2.0),
+            Object::Number(3.0),
+        ]));
+
+        assert_eq!(cx.evaluate(r#"list.1"#)?, 2.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_associative_array_access() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_owned(), "Column 2".to_owned()],
+            rows: vec![],
+        }).with_global("list", Object::AssociativeArray(vec![
+            ("a".to_string(), Object::Number(1.0)),
+            ("b".to_string(), Object::Number(2.0)),
+            ("c".to_string(), Object::Number(3.0)),
+        ].into_iter().collect()));
+
+        assert_eq!(cx.evaluate(r#"list.b"#)?, 2.0);
 
         Ok(())
     }

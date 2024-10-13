@@ -1,3 +1,4 @@
+use crate::eval::operators::get_standard_operators;
 use crate::{
     error::*,
     eval::Object,
@@ -6,15 +7,14 @@ use crate::{
     DataSource,
 };
 use alloc::{
-    vec::Vec,
     borrow::ToOwned,
     boxed::Box,
     string::String,
     string::ToString,
-    vec
+    vec,
+    vec::Vec,
 };
 use nom::lib::std::collections::HashMap;
-use crate::eval::operators::get_standard_operators;
 
 pub struct Context<Provider: DataSource> {
     globals: HashMap<String, Object>,
@@ -118,14 +118,18 @@ where
                 let mut object = obj;
 
                 while let Some(next) = chain.next() {
-                    if let Object::AssociativeArray(arr) = object {
-                        if let Some(obj) = arr.get(next) {
+                    match object {
+                        Object::AssociativeArray(arr) => if let Some(obj) = arr.get(next) {
                             object = obj;
                         } else {
                             break 'outer;
-                        }
-                    } else {
-                        break 'outer;
+                        },
+                        Object::List(list) => if let Ok(Some(obj)) = next.parse::<usize>().map(|a| list.get(a)) {
+                            object = obj
+                        } else {
+                            break 'outer;
+                        },
+                        _ => break 'outer,
                     }
                 }
 
@@ -157,18 +161,30 @@ where
             } else {
                 Err(ManualError::NoSuchOperator(operator).into())
             }
+
             Value::Literal(literal) => match literal {
                 Literal::Number(number) => Ok(Object::Number(number)),
                 Literal::String(string) => Ok(Object::String(string)),
                 Literal::Name(name) => self.resolve_name(Key::Name(name.clone())),
+
                 Literal::Address(address) => todo!()
             }
+
             Value::Call(Call { name, arguments }) => self.call_object(self.resolve_name(name)?, &arguments
                 .into_iter()
                 .map(|i| self.evaluate_value(i))
                 .collect::<Result<Vec<_>>>()?),
-            Value::List(_) => todo!(),
-            Value::AssociativeArray(_) => todo!()
+
+            Value::List(list) => Ok(Object::List(list.items.into_iter()
+                .map(|i| self.evaluate_value(i))
+                .collect::<Result<Vec<_>>>()?)),
+
+            Value::AssociativeArray(arr) => Ok(Object::AssociativeArray(arr.items.into_iter()
+                .map(|(key, value)| self.evaluate_value(value)
+                    .map(|value| (match key {
+                        Key::Name(str) | Key::String(str) => str
+                    }, value)))
+                .collect::<Result<HashMap<_, _>>>()?))
         }
     }
 

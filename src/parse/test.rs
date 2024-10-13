@@ -1,5 +1,6 @@
 #[cfg(test)]
 pub mod test {
+    use core::assert_matches::assert_matches;
     use crate::error::*;
     use crate::parse::parse;
 
@@ -76,6 +77,17 @@ pub mod test {
             ],
             operator: "*".to_owned()
         }));
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_names() -> Result<()> {
+        assert_eq!(parse("a")?, Value::Literal(Literal::Name("a".to_owned())));
+        assert_matches!(Key::parse("0"), Err(_));
+        assert_matches!(Key::parse("."), Err(_));
+        assert_matches!(Key::parse(":"), Err(_));
+        assert_matches!(Key::parse("a.0"), Ok(("", Key::Name(name))) if name == "a.0");
 
         Ok(())
     }

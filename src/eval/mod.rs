@@ -6,11 +6,12 @@ use alloc::{
     string::String,
     string::ToString,
     borrow::ToOwned,
-    vec::Vec
+    vec::Vec,
+    boxed::Box,
+    rc::Rc
 };
-use alloc::boxed::Box;
-use alloc::rc::Rc;
 use core::fmt::{Debug, Display, Formatter};
+use core::ops::Deref;
 use wasm_bindgen::__rt::std::collections::HashMap;
 use crate::error::*;
 
@@ -53,6 +54,41 @@ impl PartialEq<f64> for Object {
     fn eq(&self, other: &f64) -> bool {
         match self {
             Object::Number(x) => x == other,
+            _ => false
+        }
+    }
+}
+
+impl PartialEq<&str> for Object {
+    fn eq(&self, other: &&str) -> bool {
+        match self {
+            Object::String(str) => str.eq(other),
+            _ => false
+        }
+    }
+}
+
+impl PartialEq<&[Object]> for Object {
+    fn eq(&self, other: &&[Object]) -> bool {
+        match self {
+            Object::List(list) => list == other,
+            _ => false
+        }
+    }
+}
+
+impl PartialEq<Object> for Object {
+    fn eq(&self, other: &Object) -> bool {
+        match (self, other) {
+            (Object::Number(l), Object::Number(r)) => l == r,
+            (Object::String(l), Object::String(r)) => l == r,
+            (Object::Boolean(l), Object::Boolean(r)) => l == r,
+
+            (Object::Function(l), Object::Function(r)) => Rc::ptr_eq(l, r),
+
+            (Object::List(l), Object::List(r)) => l == r,
+            (Object::AssociativeArray(l), Object::AssociativeArray(r)) => l == r,
+
             _ => false
         }
     }
