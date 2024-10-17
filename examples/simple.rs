@@ -34,12 +34,12 @@ impl<Rows: Row> DataSource for ExampleProvider<Rows> {
         self.columns.clone().into_iter()
     }
 
-    fn tuples(&self) -> impl Iterator<Item=&Self::Rows> {
+    fn rows(&self) -> impl Iterator<Item=&Self::Rows> {
         self.rows.iter()
     }
 
-    fn tuples_mut(&mut self) -> impl Iterator<Item=&mut Self::Rows> {
-        self.rows.iter_mut()
+    fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows> {
+        self.rows.get_mut(row)
     }
 
     fn num_rows(&self) -> usize {

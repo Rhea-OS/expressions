@@ -12,7 +12,7 @@ mod vec;
 
 use alloc::vec::Vec;
 pub use crate::error::*;
-use crate::eval::Object;
+pub use crate::eval::Object;
 pub use crate::eval::context::Context;
 
 /// # Row
@@ -52,7 +52,7 @@ pub trait Row {
     /// > **Note:** While situations may occur, where a row can have different fields than the overall table,
     /// this is not normally useful and should be treated as invalid, despite being semantically valid.
     /// > i.e. this function should return the same values **in the same order** as `DataSource::list_columns`.
-    fn fields(&self) -> impl Iterator<Item=&str> + Clone;
+    fn fields(&self) -> impl Iterator<Item=impl AsRef<str>> + Clone;
 
     /// Retrieve the value of a field.
     fn get(&self, field: &str) -> Option<Object>;
@@ -73,10 +73,13 @@ pub trait DataSource {
     fn list_columns(&self) -> impl Iterator<Item=impl AsRef<str>>;
 
     /// Iterates over the rows in the table
-    fn tuples(&self) -> impl Iterator<Item=impl AsRef<Self::Rows>>;
+    fn rows(&self) -> impl Iterator<Item=&Self::Rows>;
+    //
+    // /// Mutably iterates over the rows in the table
+    // fn tuples_mut(&mut self) -> impl Iterator<Item=impl AsMut<Self::Rows>>;
 
-    /// Mutably iterates over the rows in the table
-    fn tuples_mut(&mut self) -> impl Iterator<Item=impl AsMut<Self::Rows>>;
+    /// Get a mutable reference to a row
+    fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows>;
 
     /// How many rows the table contains
     fn num_rows(&self) -> usize;
@@ -102,12 +105,12 @@ impl DataSource for EmptyProvider {
         Vec::<&'static str>::new().into_iter()
     }
 
-    fn tuples(&self) -> impl Iterator<Item=&Self::Rows> {
+    fn rows(&self) -> impl Iterator<Item=&Self::Rows> {
         alloc::vec![].into_iter()
     }
 
-    fn tuples_mut(&mut self) -> impl Iterator<Item=&mut Self::Rows> {
-        alloc::vec![].into_iter()
+    fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows> {
+        None
     }
 
     fn num_rows(&self) -> usize {

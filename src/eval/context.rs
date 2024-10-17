@@ -13,7 +13,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use wasm_bindgen::__rt::std::collections::HashMap;
+use nom::lib::std::collections::HashMap;
 
 /// # Context
 ///

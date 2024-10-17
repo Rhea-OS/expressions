@@ -1,0 +1,12 @@
+[package]
+name = "expression-js"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+expression = { path = ".." }
+wasm-bindgen = { version = "0.2.95" }
+js-sys = "0.3.72"

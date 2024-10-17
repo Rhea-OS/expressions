@@ -11,7 +11,7 @@ use alloc::{
     rc::Rc
 };
 use core::fmt::{Debug, Display, Formatter};
-use wasm_bindgen::__rt::std::collections::HashMap;
+use nom::lib::std::collections::HashMap;
 use crate::error::*;
 
 #[derive(Clone)]
