@@ -73,10 +73,10 @@ pub trait DataSource {
     fn list_columns(&self) -> impl Iterator<Item=impl AsRef<str>>;
 
     /// Iterates over the rows in the table
-    fn tuples(&self) -> impl Iterator<Item=&Self::Rows>;
+    fn tuples(&self) -> impl Iterator<Item=impl AsRef<Self::Rows>>;
 
     /// Mutably iterates over the rows in the table
-    fn tuples_mut(&mut self) -> impl Iterator<Item=&mut Self::Rows>;
+    fn tuples_mut(&mut self) -> impl Iterator<Item=impl AsMut<Self::Rows>>;
 
     /// How many rows the table contains
     fn num_rows(&self) -> usize;
