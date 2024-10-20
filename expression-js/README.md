@@ -43,12 +43,12 @@ $ cargo update
 $ cd expression-js
 $ pnpm install esbuild
 $ wasm-pack build --out build/mod
-$ pnpm exec esbuild ./lib.ts --bundle --sourcemap --format=esm --loader:.wasm=binary --outdir=build/  
+$ pnpm exec esbuild ./lib.ts --bundle --sourcemap --format=esm --loader:.wasm=binary --outdir=build/pkg
 ```
 
 This produces the following important files:
 
-1. `build/lib.js`: This is a standalone library which can be `import`ed into any existing library.
+1. `build/pkg/lib.js`: This is a standalone library which can be `import`ed into any existing library.
 2. `build/mod/expression_js.d.ts`: Is the type definition for the library.
 3. `build/mod/package.json`: This package.json file needs to be adjusted before it can be useful to the `lib.js` file,
    however this is left to the reader to determine the best way to do so.

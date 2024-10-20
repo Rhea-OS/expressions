@@ -5,6 +5,7 @@ use std::iter::Iterator;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::UnwrapThrowExt;
 
+// TODO: Make type of parameter on DataSource::new() a `DataSourceConfig` type.
 #[wasm_bindgen(typescript_custom_section)]
 const DATA_SOURCE_CONFIG: &'static str = r#"
     export type DataSourceConfig = {

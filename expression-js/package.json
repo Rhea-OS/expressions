@@ -4,13 +4,14 @@
     "version": "0.1.0",
     "type": "module",
     "scripts": {
-        "build": "build build:main.wasm build:main.js"
+        "build": "build build:main.wasm build:main.js build:lib.d.ts build:package.json"
     },
     "devDependencies": {
         "@types/node": "latest",
         "builder": "link:../../../builder",
         "chalk": "latest",
-        "typescript": "latest"
+        "typescript": "latest",
+        "esbuild-plugin-d.ts": "latest"
     },
     "imports": {
         "#mod/main.wasm": "./build/mod/expression_js_bg.wasm",

@@ -1,14 +1,10 @@
 import mod from '#mod/main.wasm';
+import * as util from '#mod/util.js';
 
-export default async function init(): Promise<typeof import("#mod/def.d.ts")> {
-    const util = await import("#mod/util.js");
+const wasm = new WebAssembly.Instance(new WebAssembly.Module(mod), {
+    "./expression_js_bg.js": util
+});
 
-    return await WebAssembly.compile(mod)
-        .then(mod => new WebAssembly.Instance(mod, {
-            "./expression_js_bg.js": util
-        }))
-        .then(mod => {
-            util.__wbg_set_wasm(mod.exports);
-            return util;
-        });
-}
+util.__wbg_set_wasm(wasm.exports);
+
+export * from '#mod/util.js';
