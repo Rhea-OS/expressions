@@ -1,0 +1,25 @@
+{
+    "name": "spreadsheet",
+    "build": "./build.js",
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "build": "build phony:all phony:install"
+    },
+    "devDependencies": {
+        "@types/node": "latest",
+        "builder": "link:../../../builder",
+        "chalk": "latest",
+        "esbuild-plugin-wasm": "latest",
+        "typescript": "latest"
+    },
+    "imports": {
+        "#mod/main.wasm": "./build/mod/expression_js_bg.wasm",
+        "#mod/util.js": "./build/mod/expression_js_bg.js"
+    },
+    "deploy": {
+        "main": "run.js",
+        "imports": {},
+        "scripts": null
+    }
+}

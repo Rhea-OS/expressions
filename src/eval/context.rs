@@ -134,6 +134,28 @@ where
         self
     }
 
+    /// # Globals
+    /// The `Context` is where functions, variables and other values are registered.
+    /// These may allow interaction with the host system, mathematical functions or other useful utility functions.
+    ///
+    /// ```rust
+    /// use expression::{
+    ///     Context,
+    ///     DataSource,
+    ///     EmptyProvider,
+    ///     Row,
+    ///     eval::Object
+    /// };
+    ///
+    /// let mut cx = Context::new(EmptyProvider::new());
+    /// cx.push_global("PI", Object::Number(std::f64::consts::PI));
+    ///
+    /// assert_eq!(cx.evaluate(r#"PI"#).unwrap(), std::f64::consts::PI);
+    /// ```
+    pub fn push_global(&mut self, name: impl AsRef<str>, global: Object) {
+        self.globals.insert(name.as_ref().to_string(), global);
+    }
+
     /// # Operator Overloads
     /// Operators are defined on the context object. These can be overridden, to produce custom operator behaviour.
     ///
@@ -164,6 +186,36 @@ where
     pub fn with_operator(mut self, operator: Operator) -> Self {
         self.operators.insert(operator.symbol.clone(), operator);
         self
+    }
+
+    /// # Operator Overloads
+    /// Operators are defined on the context object. These can be overridden, to produce custom operator behaviour.
+    ///
+    /// ```rust
+    /// use expression::{
+    ///     Context,
+    ///     DataSource,
+    ///     EmptyProvider,
+    ///     Row,
+    ///     eval::Object,
+    ///     eval::context::OperatorBuilder
+    /// };
+    ///
+    /// let mut cx = Context::new(EmptyProvider::new());
+    /// cx.push_operator(OperatorBuilder::new()
+    ///     .symbol("~")
+    ///     .operands(1)
+    ///     .precedence(10)
+    ///     .handler(|args| {
+    ///         // Define an operator which nullifies the value
+    ///         Ok(Object::Nothing)
+    ///     })
+    ///     .build());
+    ///
+    /// assert_eq!(cx.evaluate(r#"~10"#).unwrap(), Object::Nothing);
+    /// ```
+    pub fn push_operator(&mut self, operator: Operator) {
+        self.operators.insert(operator.symbol.clone(), operator);
     }
 
     pub fn resolve_name(&self, name: Key) -> Result<Object> {

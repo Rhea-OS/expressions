@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "module": "NodeNext",
+        "target": "esnext",
+        "moduleResolution": "NodeNext",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationDir": "build/lib",
+        "outDir": "build/ts",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "allowJs": true,
+        "jsx": "react-jsx",
+        "resolveJsonModule": true,
+        "forceConsistentCasingInFileNames": true,
+        "importHelpers": true,
+        "strict": true,
+        "baseUrl": "./",
+        "paths": {
+            "#mod/main.wasm": ["./build/mod/expression_js_bg.wasm", "./wasm.d.ts"],
+            "#mod/util.js": ["./build/mod/expression_js_bg.js"],
+            "#mod/def.d.ts": ["./build/mod/expression_js.d.ts"]
+        }
+    },
+    "exclude": [
+        "build"
+    ],
+}

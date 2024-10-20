@@ -9,4 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 expression = { path = ".." }
 wasm-bindgen = { version = "0.2.95" }
+serde = { version = "1.0.210", features = ["derive"] }
 js-sys = "0.3.72"
+web-sys = "0.3.72"

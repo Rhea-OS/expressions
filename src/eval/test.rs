@@ -14,19 +14,20 @@ mod tests {
         columns: Vec<String>,
     }
 
-    impl<Rows: Row> DataSource for ManualProvider<Rows> {
+    impl<Rows: Row + Clone> DataSource for ManualProvider<Rows> {
         type Rows = Rows;
 
         fn list_columns(&self) -> impl Iterator<Item=impl AsRef<str>> {
             self.columns.iter()
         }
 
-        fn rows(&self) -> impl Iterator<Item=&Self::Rows> {
+        fn rows(&self) -> impl Iterator<Item=Self::Rows> {
             self.rows.iter()
+                .cloned()
         }
 
-        fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows> {
-            self.rows.get_mut(row)
+        fn row(&self, row: usize) -> Option<Self::Rows> {
+            self.rows.get(row).cloned()
         }
 
         fn num_rows(&self) -> usize {
@@ -34,13 +35,14 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
     struct TwoColumns {
         col1: String,
         col2: String,
     }
 
     impl Row for TwoColumns {
-        fn fields(&self) -> impl Iterator<Item=&str> + Clone {
+        fn fields(&self) -> impl Iterator<Item = impl AsRef<str>> + Clone {
             vec!["col1", "col2"].into_iter()
         }
 

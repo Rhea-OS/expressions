@@ -32,7 +32,7 @@ pub use crate::eval::context::Context;
 /// }
 ///
 /// impl Row for Example {
-///     fn fields(&self) -> impl Iterator<Item=&str> + Clone {
+///     fn fields(&self) -> impl Iterator<Item=impl AsRef<str>> + Clone {
 ///         // Ideally, this function returns the list of available fields in a programmatic way, but this example is too trivial.
 ///         vec!["col1", "col2"].clone().into_iter()
 ///     }
@@ -73,13 +73,15 @@ pub trait DataSource {
     fn list_columns(&self) -> impl Iterator<Item=impl AsRef<str>>;
 
     /// Iterates over the rows in the table
-    fn rows(&self) -> impl Iterator<Item=&Self::Rows>;
+    fn rows(&self) -> impl Iterator<Item=Self::Rows>;
     //
     // /// Mutably iterates over the rows in the table
     // fn tuples_mut(&mut self) -> impl Iterator<Item=impl AsMut<Self::Rows>>;
+    //
+    // /// Get a mutable reference to a row
+    // fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows>;
 
-    /// Get a mutable reference to a row
-    fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows>;
+    fn row(&self, row: usize) -> Option<Self::Rows>;
 
     /// How many rows the table contains
     fn num_rows(&self) -> usize;
@@ -89,7 +91,7 @@ pub struct EmptyProvider;
 pub struct EmptyRow;
 
 impl Row for EmptyRow {
-    fn fields(&self) -> impl Iterator<Item=&str> + Clone {
+    fn fields(&self) -> impl Iterator<Item = impl AsRef<str>> + Clone {
         Vec::<&'static str>::new().into_iter()
     }
 
@@ -105,11 +107,11 @@ impl DataSource for EmptyProvider {
         Vec::<&'static str>::new().into_iter()
     }
 
-    fn rows(&self) -> impl Iterator<Item=&Self::Rows> {
+    fn rows(&self) -> impl Iterator<Item=Self::Rows> {
         alloc::vec![].into_iter()
     }
 
-    fn row_mut(&mut self, row: usize) -> Option<&mut Self::Rows> {
+    fn row(&self, row: usize) -> Option<Self::Rows> {
         None
     }
 
