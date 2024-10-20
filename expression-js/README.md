@@ -64,3 +64,8 @@ base engine will break the bindings. If this is the case, you may need to rebuil
    * The bindings
    * The resulting bundle
 2. Rebuild from scratch.
+
+It is unfortunately not trivially possible to make cargo an npm interact when it comes to the build process. 
+This makes it somewhat difficult to cleanly tie NodeJS imports and wasm artefacts together.
+As a result, `package.json` specifies [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in order to simplify the linking process. 
+Unfortunately, this means that the structure of build artifacts is more-or-less fixed. Please ensure that you use the correct build structure during manual buidls.
