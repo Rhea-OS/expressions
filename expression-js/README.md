@@ -20,7 +20,7 @@ $ # alternatively invoke the build command manually:
 $ pnpm exec build build:main.wasm build:main.js -f
 ```
 
-> [[!important]] In order for an integrated build such as above to be successful, the directory structure of the source
+> [!important] In order for an integrated build such as above to be successful, the directory structure of the source
 > code must be taken into account. As this library is technically
 > a [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) member, it depends on the base
 > expression engine through a relative path. If either of these packages are moved relative to each-other, the build may
