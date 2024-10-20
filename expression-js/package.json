@@ -4,13 +4,12 @@
     "version": "0.1.0",
     "type": "module",
     "scripts": {
-        "build": "build phony:all phony:install"
+        "build": "build build:main.wasm build:main.js"
     },
     "devDependencies": {
         "@types/node": "latest",
         "builder": "link:../../../builder",
         "chalk": "latest",
-        "esbuild-plugin-wasm": "latest",
         "typescript": "latest"
     },
     "imports": {
