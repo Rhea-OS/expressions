@@ -76,6 +76,7 @@ pub enum ManualError {
     OperationNotValidForType(String),
     CannotCallNonFunctionObjet(),
     InsufficientOperands(String),
+    CannotCastToString
 }
 
 impl core::error::Error for ManualError {}

@@ -1,6 +1,7 @@
 mod test;
 pub mod context;
 pub mod operators;
+mod standard_functions;
 
 use alloc::{
     string::String,

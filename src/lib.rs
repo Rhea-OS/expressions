@@ -12,8 +12,8 @@ mod vec;
 
 use alloc::vec::Vec;
 pub use crate::error::*;
-pub use crate::eval::Object;
-pub use crate::eval::context::Context;
+pub use crate::eval::*;
+pub use crate::eval::context::*;
 
 /// # Row
 /// Represents a row of a table.
