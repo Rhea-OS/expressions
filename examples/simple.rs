@@ -2,6 +2,7 @@ use std::{
     cell::RefCell,
     rc::Rc
 };
+use std::io::Write;
 use expression::{
     Context,
     DataSource,
@@ -74,8 +75,14 @@ pub fn main() {
         ],
         rows: vec![]
     });
-    
-    if let Ok(result) = cx.evaluate(r#"1+2"#) {
-        println!("{}", result);
+
+    let program = std::env::args().nth(1).unwrap();
+
+    print!("{}: ", &program);
+    std::io::stdout().flush().unwrap();
+
+    match cx.evaluate(program) {
+        Ok(result) => println!("{}", result),
+        Err(err) => println!("Error: {}", err)
     }
 }
