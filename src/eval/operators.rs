@@ -12,6 +12,7 @@ use alloc::{
     vec,
     vec::Vec
 };
+use alloc::string::ToString;
 use core::ops::Add;
 
 pub(crate) fn get_standard_operators() -> Vec<Operator> {

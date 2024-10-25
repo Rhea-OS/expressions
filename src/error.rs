@@ -24,6 +24,10 @@ macro_rules! multi_error {
                 backtrace: Backtrace
             }
 
+            impl Error {
+                pub fn into_inner(self) -> Inner { self.inner }
+            }
+
             impl<Err> From<Err> for Error where Err: Into<Inner> {
                 fn from(err: Err) -> Self {
                     Self {
@@ -69,14 +73,17 @@ pub type Result<T> = core::result::Result<T, Error>;
 use alloc::string::String;
 pub use global::Error;
 
+/// TODO: Document the error types used throughout the expression parser below.
 #[derive(Debug, Clone)]
 pub enum ManualError {
     NoSuchOperator(String),
     NoSuchValue(String),
     OperationNotValidForType(String),
-    CannotCallNonFunctionObjet(),
+    CannotCallNonFunctionObject(),
     InsufficientOperands(String),
-    CannotCastToString
+    CannotCastToString,
+    ConversionFailed,
+    ExpectedType(String)
 }
 
 impl core::error::Error for ManualError {}

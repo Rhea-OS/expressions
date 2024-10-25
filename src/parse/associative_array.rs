@@ -19,6 +19,5 @@ impl AssociativeArray {
                 .map(|(key, _, value)| (key, value))
                 .collect()
         })(input)
-
     }
 }

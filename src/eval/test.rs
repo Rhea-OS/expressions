@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use alloc::vec;
+    use core::assert_matches::assert_matches;
     use crate::{
         eval::context::Context,
         error::*,
@@ -122,7 +123,19 @@ mod tests {
             Object::Number(3.0),
         ]));
 
-        assert_eq!(cx.evaluate(r#"list.1"#)?, 2.0);
+        assert_matches!(cx.evaluate(r#"list.1"#), Ok(Object::Number(2.0)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_inline_list_access() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_string(), "Column 2".to_string()],
+            rows: vec![]
+        });
+
+        assert_eq!(cx.evaluate(r#"([1,2]).0"#)?, 1.0);
 
         Ok(())
     }
@@ -139,6 +152,18 @@ mod tests {
         ].into_iter().collect()));
 
         assert_eq!(cx.evaluate(r#"list.b"#)?, 2.0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_inline_associative_array_access() -> Result<()> {
+        let cx = Context::new(ManualProvider::<TwoColumns> {
+            columns: vec!["Column 1".to_string(), "Column 2".to_string()],
+            rows: vec![]
+        });
+
+        assert_eq!(cx.evaluate(r#"([x=1,y=2]).x"#)?, 1.0);
 
         Ok(())
     }

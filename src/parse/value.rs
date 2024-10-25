@@ -10,12 +10,14 @@ use crate::{
 };
 use core::ops::Deref;
 use nom::IResult;
+use crate::parse::access::Access;
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum Value {
     Expression(Expression),
     Literal(Literal),
     Call(Call),
+    Access(Access),
     List(List),
     AssociativeArray(AssociativeArray),
 }
@@ -35,14 +37,15 @@ pub(super) fn value_parser<'a>(cx: ParseContext) -> impl Fn(&'a str) -> IResult<
                     expr(rank + 1, cx),
                 ))(input)
             } else {
-                // ( expr(p=0) ) | Literal | Call | List | AssociativeArray
+                // ( expr(p=0) ) | Literal | Call | Access | List | AssociativeArray
 
                 parser::alt((
-                    parser::delimited(parser::char('('), expr(0, cx), parser::char(')')),
+                    parser::map(|input| Access::parse(input, cx.clone()), Value::Access),
                     parser::map(|input| Call::parse(input, cx.clone()), Value::Call),
                     parser::map(|input| List::parse(input, cx.clone()), Value::List),
                     parser::map(|input| AssociativeArray::parse(input, cx.clone()), Value::AssociativeArray),
                     parser::map(Literal::parse, Value::Literal),
+                    parser::delimited(parser::char('('), expr(0, cx), parser::char(')')),
                 ))(input)
             }
         }

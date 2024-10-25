@@ -35,7 +35,7 @@ fn parse_name(input: &str) -> IResult<&str, String> {
     }
 
     while let Some(c) = iter.next() {
-        if nom_unicode::is_alphanumeric(c) || c == '_' || c == '$' || c == '.' {
+        if nom_unicode::is_alphanumeric(c) || c == '_' || c == '$' {
             str.push(c);
         } else {
             break;

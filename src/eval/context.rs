@@ -3,17 +3,11 @@ use crate::{
     error::*,
     eval::Object,
     parse::objects::*,
-    DataSource
+    DataSource,
 };
-use alloc::{
-    borrow::ToOwned,
-    boxed::Box,
-    string::String,
-    string::ToString,
-    vec,
-    vec::Vec,
-};
+use alloc::{borrow::ToOwned, boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
 use nom::lib::std::collections::HashMap;
+use crate::eval::globals::get_standard_globals;
 
 /// # Context
 ///
@@ -103,7 +97,9 @@ where
 {
     pub fn new(provider: Provider) -> Self {
         Self {
-            globals: Default::default(),
+            globals: get_standard_globals()
+                .into_iter()
+                .collect(),
             data_provider: Box::new(provider),
             operators: get_standard_operators()
                 .into_iter()
@@ -218,46 +214,41 @@ where
         self.operators.insert(operator.symbol.clone(), operator);
     }
 
-    pub fn resolve_name(&self, name: Key) -> Result<Object> {
-        let mut chain = match &name {
-            Key::Name(name) => name.split('.').collect::<Vec<_>>(),
-            Key::String(name) => vec![name.as_str()],
-        }.into_iter();
-
-        'outer: {
-            if let Some(obj) = chain.next().and_then(|key| self.globals.get(key)) {
-                let mut object = obj;
-
-                while let Some(next) = chain.next() {
-                    match object {
-                        Object::AssociativeArray(arr) => if let Some(obj) = arr.get(next) {
-                            object = obj;
-                        } else {
-                            break 'outer;
-                        },
-                        Object::List(list) => if let Ok(Some(obj)) = next.parse::<usize>().map(|a| list.get(a)) {
-                            object = obj
-                        } else {
-                            break 'outer;
-                        },
-                        _ => break 'outer,
-                    }
-                }
-
-                return Ok(object.clone());
-            }
-        }
-
-        Err(ManualError::NoSuchValue(match name {
-            Key::Name(ref name) | Key::String(ref name) => name.clone()
-        }).into())
-    }
+    // pub fn resolve_name(&self, name: String) -> Result<Object> {
+    //     let mut chain = name.split('.');
+    //
+    //     'outer: {
+    //         if let Some(obj) = chain.next().and_then(|key| self.globals.get(key)) {
+    //             let mut object = obj;
+    //
+    //             while let Some(next) = chain.next() {
+    //                 match object {
+    //                     Object::AssociativeArray(arr) => if let Some(obj) = arr.get(next) {
+    //                         object = obj;
+    //                     } else {
+    //                         break 'outer;
+    //                     },
+    //                     Object::List(list) => if let Ok(Some(obj)) = next.parse::<usize>().map(|a| list.get(a)) {
+    //                         object = obj
+    //                     } else {
+    //                         break 'outer;
+    //                     },
+    //                     _ => break 'outer,
+    //                 }
+    //             }
+    //
+    //             return Ok(object.clone());
+    //         }
+    //     }
+    //
+    //     Err(ManualError::NoSuchValue(name.clone()).into())
+    // }
 
     pub fn call_object(&self, object: Object, arguments: &[Object]) -> Result<Object> {
         if let Object::Function(obj) = object {
             obj(arguments.iter().cloned().collect())
         } else {
-            Err(ManualError::CannotCallNonFunctionObjet().into())
+            Err(ManualError::CannotCallNonFunctionObject().into())
         }
     }
 
@@ -276,15 +267,36 @@ where
             Value::Literal(literal) => match literal {
                 Literal::Number(number) => Ok(Object::Number(number)),
                 Literal::String(string) => Ok(Object::String(string)),
-                Literal::Name(name) => self.resolve_name(Key::Name(name.clone())),
+                Literal::Name(name) => self.globals.get(name.as_str())
+                    .cloned()
+                    .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
                 Literal::Address(address) => todo!()
             }
 
-            Value::Call(Call { name, arguments }) => self.call_object(self.resolve_name(name)?, &arguments
+            Value::Call(Call { name, arguments }) => self.call_object(self.evaluate_value(*name)?, &arguments
                 .into_iter()
                 .map(|i| self.evaluate_value(i))
                 .collect::<Result<Vec<_>>>()?),
+
+            Value::Access(Access { left, member }) => match (self.evaluate_value(*left), member) {
+                (Ok(Object::AssociativeArray(array)), Literal::Name(ref name) | Literal::String(ref name)) => array.get(name)
+                    .cloned()
+                    .ok_or(ManualError::NoSuchValue(name.clone()).into()),
+
+                (Ok(Object::List(list)), Literal::Name(ref name) | Literal::String(ref name)) => name.parse::<usize>()
+                    .ok()
+                    .and_then(|index| list.get(index))
+                    .cloned()
+                    .ok_or(ManualError::NoSuchValue(name.clone()).into()),
+
+                (Ok(Object::List(list)), Literal::Number(ref name)) => list.get(*name as usize)
+                    .cloned()
+                    .ok_or(ManualError::NoSuchValue(format!("{}", name)).into()),
+
+                (Ok(obj), _) => Err(ManualError::OperationNotValidForType(format!("Object of type '{}' does not exhibit any accessible members", obj.datatype())).into()),
+                (Err(err), _) => Err(err)
+            },
 
             Value::List(list) => Ok(Object::List(list.items.into_iter()
                 .map(|i| self.evaluate_value(i))
@@ -300,6 +312,7 @@ where
     }
 
     pub fn evaluate(&self, expression: impl AsRef<str>) -> Result<Object> {
-        Ok(self.evaluate_value(self.parse(expression.as_ref())?)?)
+        let ast = self.parse(expression.as_ref())?;
+        Ok(self.evaluate_value(ast)?)
     }
 }

@@ -1,5 +1,6 @@
 pub(crate) mod key;
 pub(crate) mod call;
+pub(crate) mod access;
 pub(crate) mod list;
 pub(crate) mod literal;
 pub(crate) mod associative_array;
@@ -7,15 +8,21 @@ pub(crate) mod expression;
 pub(crate) mod value;
 pub(crate) mod test;
 
-use crate::{error::*, parse::value::value_parser, parse::value::Value, Context, DataSource};
+use crate::{
+    error::*,
+    parse::value::value_parser,
+    parse::value::Value,
+    Context,
+    DataSource
+};
 use alloc::{
     borrow::ToOwned,
     collections::BTreeMap,
     rc::Rc,
     vec,
-    vec::Vec
+    vec::Vec,
+    string::String
 };
-use alloc::string::String;
 use core::ops::Deref;
 
 pub(super) mod parser {
@@ -32,7 +39,10 @@ pub(crate) mod objects {
     pub(crate) use crate::parse::literal::Literal;
     pub(crate) use crate::parse::expression::Expression;
     pub(crate) use crate::parse::call::Call;
+    pub(crate) use crate::parse::access::Access;
     pub(crate) use crate::parse::key::Key;
+    pub(crate) use crate::parse::list::List;
+    pub(crate) use crate::parse::associative_array::AssociativeArray;
 }
 
 

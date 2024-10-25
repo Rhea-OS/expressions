@@ -1,16 +1,9 @@
 mod test;
 pub mod context;
 pub mod operators;
-mod standard_functions;
+mod globals;
 
-use alloc::{
-    string::String,
-    string::ToString,
-    borrow::ToOwned,
-    vec::Vec,
-    boxed::Box,
-    rc::Rc
-};
+use alloc::{string::String, string::ToString, borrow::ToOwned, vec::Vec, boxed::Box, rc::Rc, format};
 use core::fmt::{Debug, Display, Formatter};
 use nom::lib::std::collections::HashMap;
 use crate::error::*;
@@ -47,11 +40,13 @@ impl Object {
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", match self {
+            Object::Nothing => "nothing".to_owned(),
             Object::Boolean(v) => if *v { "true".to_owned() } else { "false".to_owned() },
             Object::Number(v) => v.to_string(),
-            Object::String(v) => v.to_owned(),
+            Object::String(v) => format!("'{}'", v),
             Object::Function(_) => "fn()".to_owned(),
-            _ => "[Object object]".to_owned(),
+            Object::List(list) => format!("[{}]", list.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(", ")),
+            Object::AssociativeArray(assoc) => format!("[{}]", assoc.iter().map(|(a, i)| format!("{}={}", a, i)).collect::<Vec<_>>().join(", ")),
         })
     }
 }

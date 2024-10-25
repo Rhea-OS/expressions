@@ -1,13 +1,15 @@
 #[cfg(test)]
 pub mod test {
+    use alloc::boxed::Box;
+    use alloc::string::ToString;
     use core::assert_matches::assert_matches;
     use crate::error::*;
-
     use crate::parse::call::Call;
     use crate::parse::expression::Expression;
     use crate::parse::key::Key;
     use crate::parse::literal::Literal;
     use crate::parse::*;
+    use crate::parse::access::Access;
     use crate::parse::associative_array::AssociativeArray;
     use crate::parse::list::List;
 
@@ -28,7 +30,7 @@ pub mod test {
         ("^", 20, 2),
     ];
 
-    fn parse(input: impl AsRef<str>) -> Result<Value> {
+    fn cx() -> ParseContext {
         // Group the operators by precedence into a BTreeMap so it's sorted.
         let operators = OPERATORS.iter()
             .fold(BTreeMap::new(), |mut accumulator, (token, precedence, _num_operands)| {
@@ -41,12 +43,16 @@ pub mod test {
                 return accumulator;
             });
 
-        let parser = value_parser(ParseContext::new(
+        ParseContext::new(
             operators.keys().copied().collect::<Vec<_>>(),
             operators.into_iter()
                 .map(|(precedence, tokens)| (precedence, tokens.into_iter().map(|i| i.to_owned()).collect::<Vec<_>>()))
                 .collect(),
-        ));
+        )
+    }
+
+    fn parse(input: impl AsRef<str>) -> Result<Value> {
+        let parser = value_parser(cx());
 
         parser(input.as_ref())
             .map(|(_, v)| v)
@@ -128,7 +134,21 @@ pub mod test {
         assert_matches!(Key::parse("0"), Err(_));
         assert_matches!(Key::parse("."), Err(_));
         assert_matches!(Key::parse(":"), Err(_));
-        assert_matches!(Key::parse("a.0"), Ok(("", Key::Name(name))) if name == "a.0");
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_access() -> Result<()> {
+        assert_eq!(Access::parse("a.b", cx()).unwrap().1, Access {
+            left: Box::new(Value::Literal(Literal::Name("a".into()))),
+            member: Literal::Name("b".into()),
+        });
+        
+        assert_eq!(parse("a.b")?, Value::Access(Access {
+            left: Box::new(Value::Literal(Literal::Name("a".to_owned()))),
+            member: Literal::Name("b".to_string()),
+        }));
 
         Ok(())
     }
@@ -146,7 +166,8 @@ pub mod test {
     #[test]
     pub fn test_call() -> Result<()> {
         assert_eq!(parse("hello(1)")?, Value::Call(Call {
-            name: Key::Name("hello".to_owned()),
+            // name: Key::Name("hello".to_owned()),
+            name: Box::new(Value::Literal(Literal::Name("hello".to_owned()))),
             arguments: vec![Value::Literal(Literal::Number(1.0))],
         }));
 
@@ -174,6 +195,20 @@ pub mod test {
                 (Key::Name("beans".into()), Value::Literal(Literal::Number(2.0))),
                 (Key::Name("cheese".into()), Value::Literal(Literal::Number(3.0))),
             ]
+        }));
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_access_on_inline_object() -> Result<()> {
+        assert_eq!(parse("([x=1]).x")?, Value::Access(Access {
+            left: Box::new(Value::AssociativeArray(AssociativeArray {
+                items: vec![
+                    (Key::Name("x".to_string()), Value::Literal(Literal::Number(1.0)))
+                ].into_iter().collect()
+            })),
+            member: Literal::Name("x".into())
         }));
 
         Ok(())
