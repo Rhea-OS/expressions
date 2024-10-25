@@ -1,9 +1,14 @@
 use wasm_bindgen::prelude::*;
-use crate::context::value_to_js_object;
+use expression::ManualError;
+use expression::error::*;
+use crate::{
+    context::js_value_to_object,
+    context::value_to_js_object,
+};
 
 #[wasm_bindgen(js_name = Operator)]
 pub struct Operator {
-    builder: expression::OperatorBuilder
+    builder: expression::OperatorBuilder,
 }
 
 #[wasm_bindgen(js_class = Operator)]
@@ -14,11 +19,26 @@ impl Operator {
             builder: expression::OperatorBuilder::new()
                 .symbol(symbol.as_string()
                     .unwrap_throw())
-                .handler(|args| handler.call1(&JsValue::null(), js_sys::Array::from_iter(args.iter().map(|i| value_to_js_object(i.clone()))))),
+                .handler(move |args| {
+                    let args = js_sys::Array::from_iter(args.iter()
+                        .cloned()
+                        .map(value_to_js_object)
+                        .map(|i| i.ok_or(Into::<Error>::into(ManualError::ConversionFailed)))
+                        .collect::<Result<Vec<_>>>()?
+                        .into_iter());
+                    let args = JsValue::from(args);
+                    let cx = JsValue::null();
+
+                    let res = handler.call1(&cx, &args).unwrap_throw();
+                    let res = js_value_to_object(res)
+                        .ok_or(ManualError::ConversionFailed)?;
+
+                    Ok(res)
+                }),
         }
     }
 
-    fn into_operator(self) -> expression::Operator {
+    pub(crate) fn into_operator(self) -> expression::Operator {
         self.builder.build()
     }
 }

@@ -1,8 +1,10 @@
+use std::rc::Rc;
 use wasm_bindgen::{
     JsValue,
     UnwrapThrowExt,
     prelude::*
 };
+use expression::error::*;
 use crate::DataSource;
 
 #[wasm_bindgen(js_name=Context)]
@@ -29,6 +31,20 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
             .into_iter()
             .flat_map(js_value_to_object)
             .collect()),
+        value if value.is_function() => {
+            let value = value.clone();
+            expression::Object::Function(Rc::new(Box::new(move |args| {
+                let args = js_sys::Array::from_iter(args.into_iter()
+                    .map(value_to_js_object)
+                    .map(|i| i.ok_or(Into::<Error>::into(ManualError::ConversionFailed)))
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter());
+                let result = js_sys::Function::from(value.clone()).call1(&JsValue::null(), &JsValue::from(args))
+                    .unwrap_throw();
+                js_value_to_object(result)
+                    .ok_or(ManualError::ConversionFailed.into())
+            })))
+        },
 
         // TODO: Detect Addresses
         value if value.is_object() => expression::Object::AssociativeArray(js_sys::Reflect::own_keys(&value).ok()?
@@ -82,7 +98,7 @@ pub(crate) fn value_to_js_object(value: expression::Object) -> Option<JsValue> {
 }
 
 #[wasm_bindgen(js_class=Context)]
-impl crate::Context {
+impl Context {
     #[wasm_bindgen(constructor)]
     pub fn new(config: DataSource) -> crate::Context {
         Self {
@@ -94,7 +110,15 @@ impl crate::Context {
     pub fn set_global(&mut self, name: js_sys::JsString, global: JsValue) {
         // Convert the global into the `expression::Object` equivalent
 
-        self.cx.push_global(name.as_string().unwrap_throw(), js_value_to_object(global).unwrap_throw());
+        let Some(name) = name.as_string() else {
+            wasm_bindgen::throw_str("Name could not be cast to native string");
+        };
+
+        let Some(obj) = js_value_to_object(global) else {
+            wasm_bindgen::throw_str("Object could not be cast to target");
+        };
+
+        self.cx.push_global(name, obj);
     }
 
     #[deprecated(note = "Use push_global instead")]
@@ -104,8 +128,8 @@ impl crate::Context {
     }
 
     #[wasm_bindgen(js_name = pushOperator)]
-    pub fn set_operator(&mut self, operator: Operator) {
-        self.cx.push_operator();
+    pub fn set_operator(&mut self, operator: crate::Operator) {
+        self.cx.push_operator(operator.into_operator());
     }
 
     #[deprecated(note = "Use push_operator instead")]
@@ -116,6 +140,29 @@ impl crate::Context {
 
     #[wasm_bindgen(js_name = evaluate)]
     pub fn evaluate(&self, expression: js_sys::JsString) -> JsValue {
-        value_to_js_object(self.cx.evaluate(expression.as_string().unwrap_throw()).unwrap_throw()).unwrap_throw()
+        let Some(expr) = expression.as_string() else {
+            wasm_bindgen::throw_str("Expression could not be cast to native string");
+        };
+
+        let error_message_or_result = self.cx.evaluate(expr)
+            .map_err(|error| match error.into_inner() {
+                global::Inner::ManualError(ManualError::InsufficientOperands(op)) => format!("The operator '{}' did not receive the required number of operands.", op),
+                global::Inner::ManualError(ManualError::CannotCallNonFunctionObject()) => format!("Object not callable"),
+                global::Inner::ManualError(ManualError::NoSuchOperator(op)) => format!("The operator '{}' was not recognised", op),
+                global::Inner::ManualError(ManualError::NoSuchValue(value)) => format!("'{}' is not defined", value),
+                global::Inner::ManualError(ManualError::OperationNotValidForType(op)) => format!("The operation '{}' was attempted on an invalid type", op),
+                err => format!("Miscellaneous Error: {:?}", err)
+            });
+
+        let res = match error_message_or_result {
+            Ok(result) => result,
+            Err(err) => wasm_bindgen::throw_str(&err)
+        };
+
+        if let Some(res) = value_to_js_object(res) {
+            res
+        } else {
+            wasm_bindgen::throw_str("Unable to convert result back into JS");
+        }
     }
 }

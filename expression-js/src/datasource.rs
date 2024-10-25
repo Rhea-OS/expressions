@@ -25,7 +25,7 @@ pub struct DataSource {
 }
 
 #[wasm_bindgen(js_class=DataSource)]
-impl crate::DataSource {
+impl DataSource {
     #[wasm_bindgen(constructor)]
     pub fn new(config: JsValue) -> crate::DataSource {
         let list_columns = js_sys::Function::from(js_sys::Reflect::get(&config, &JsValue::from_str("listColumns"))
@@ -80,8 +80,8 @@ impl expression::Row for crate::RowWrapper {
     }
 }
 
-impl expression::DataSource for crate::DataSource {
-    type Rows = crate::RowWrapper;
+impl expression::DataSource for DataSource {
+    type Rows = RowWrapper;
 
     fn list_columns(&self) -> impl Iterator<Item=impl AsRef<str>> {
         self.columns.iter()
@@ -94,7 +94,7 @@ impl expression::DataSource for crate::DataSource {
         let arr = js_sys::Array::from(&rows);
 
         arr.into_iter()
-            .map(|i| crate::RowWrapper(js_sys::Object::from(i)))
+            .map(|i| RowWrapper(js_sys::Object::from(i)))
     }
 
     fn row(&self, row: usize) -> Option<Self::Rows> {
@@ -104,7 +104,7 @@ impl expression::DataSource for crate::DataSource {
         if rows.is_falsy() {
             None
         } else {
-            Some(crate::RowWrapper(js_sys::Object::from(rows)))
+            Some(RowWrapper(js_sys::Object::from(rows)))
         }
     }
 
