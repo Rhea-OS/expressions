@@ -1,5 +1,6 @@
 #![feature(iterator_try_reduce)]
 #![feature(assert_matches)]
+#![feature(iter_array_chunks)]
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
@@ -9,6 +10,7 @@ pub mod error;
 pub mod parse;
 pub mod eval;
 mod vec;
+// mod hashmap;
 
 use alloc::vec::Vec;
 pub use crate::error::*;

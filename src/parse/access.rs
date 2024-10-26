@@ -1,5 +1,4 @@
 use alloc::boxed::Box;
-use alloc::string::String;
 use nom::IResult;
 use crate::parse::literal::Literal;
 use crate::parse::ParseContext;
@@ -11,7 +10,6 @@ pub struct Access {
     pub(crate) left: Box<Value>,
     pub(crate) member: Literal
 }
-
 
 impl Access {
     pub(super) fn parse(input: &str, cx: ParseContext) -> IResult<&str, Self> {

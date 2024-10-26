@@ -46,7 +46,7 @@ pub(crate) mod objects {
 }
 
 
-struct ParseContext(Rc<ContextInner>);
+pub struct ParseContext(Rc<ContextInner>);
 
 impl ParseContext {
     fn new(precedences: Vec<i64>, operators: BTreeMap<i64, Vec<String>>) -> Self {
@@ -54,6 +54,12 @@ impl ParseContext {
             precedences,
             operators,
         }))
+    }
+    
+    pub fn parse(&self, expression: impl AsRef<str>) -> Result<Value> {
+        value_parser(self.clone())(expression.as_ref())
+            .map(|(_, v)| v)
+            .map_err(|err| stringify(err).into())
     }
 }
 
@@ -71,15 +77,13 @@ impl Clone for ParseContext {
     }
 }
 
-struct ContextInner {
+pub struct ContextInner {
     operators: BTreeMap<i64, Vec<String>>,
     precedences: Vec<i64>,
 }
 
-impl ParseContext {}
-
 impl<Provider: DataSource> Context<Provider> {
-    fn parse_context(&self) -> ParseContext {
+    pub fn parse_context(&self) -> ParseContext {
         // Group the operators by precedence into a BTreeMap so it's sorted.
         let operators = self.operators.iter()
             .fold(BTreeMap::new(), |mut accumulator, (token, operator)| {
@@ -98,12 +102,8 @@ impl<Provider: DataSource> Context<Provider> {
         )
     }
 
-    pub(crate) fn parse(&self, str: &str) -> Result<Value> {
-        let parser = value_parser(self.parse_context());
-
-        parser(str)
-            .map(|(_, v)| v)
-            .map_err(|err| stringify(err).into())
+    pub fn parse(&self, str: &str) -> Result<Value> {
+        self.parse_context().parse(str)
     }
 }
 

@@ -177,7 +177,7 @@ where
     ///         })
     ///         .build());
     ///
-    /// assert_eq!(cx.evaluate(r#"~10"#).unwrap(), Object::Nothing);
+    /// assert_eq!(cx.evaluate(r#"2~10"#).unwrap(), Object::Nothing);
     /// ```
     pub fn with_operator(mut self, operator: Operator) -> Self {
         self.operators.insert(operator.symbol.clone(), operator);
@@ -208,7 +208,7 @@ where
     ///     })
     ///     .build());
     ///
-    /// assert_eq!(cx.evaluate(r#"~10"#).unwrap(), Object::Nothing);
+    /// assert_eq!(cx.evaluate(r#"2~10"#).unwrap(), Object::Nothing);
     /// ```
     pub fn push_operator(&mut self, operator: Operator) {
         self.operators.insert(operator.symbol.clone(), operator);

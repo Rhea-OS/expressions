@@ -34,11 +34,11 @@ impl Literal {
 
 fn parse_number(input: &str) -> IResult<&str, Literal> {
     parser::map(parser::alt((
+        parse_integer,
+        parse_decimal,
         parse_hex,
         parse_oct,
         parse_bin,
-        parse_integer,
-        parse_decimal,
         parse_scientific,
     )), Literal::Number)(input)
 }
@@ -91,18 +91,18 @@ fn parse_bin(input: &str) -> IResult<&str, f64> {
         negative,
         parser::tag("0b"),
         parser::many1(parser::alt((
-            parser::tag("1"),
-            parser::tag("0"),
-            parser::tag("_")
+            parser::char('1'),
+            parser::char('0'),
+            parser::char('_')
         )))
-    )), |(neg, _, body): (&str, &str, Vec<&str>)| {
+    )), |(neg, _, body): (&str, &str, Vec<char>)| {
         // TODO: handle parse errors properly
 
-        let body = body.into_iter()
-            .filter(|i| *i != "_")
+        let body = neg.chars().chain(body.into_iter())
+            .filter(|i| *i != '_')
             .collect::<String>();
 
-        i64::from_str_radix(&format!("{}{}", neg, body), 2).unwrap() as f64
+        i64::from_str_radix(&body, 2).unwrap() as f64
     })(input)
 }
 
@@ -113,7 +113,7 @@ fn parse_float(input: &str) -> IResult<&str, String> {
             parser::digit1,
             parser::tag("_")
         ))),
-        parser::tag("."),
+        parser::char('.'),
         parser::many1(parser::alt((
             parser::digit1,
             parser::tag("_")
@@ -143,10 +143,9 @@ fn parse_integer(input: &str) -> IResult<&str, f64> {
     parser::map(parser::tuple((
         negative,
         parser::digit1
-    )), |(neg, num)| {
-        // TODO: handle parse errors properly
-        format!("{}{}", neg, num).parse().unwrap()
-    })(input)
+    )), |(neg, num)| num.parse::<i64>().map(|i| if neg.len() > 0 { (i * -1) as f64 } else { i as f64 })
+        // TODO: Handle errors properly
+        .unwrap())(input)
 }
 
 fn parse_address(input: &str) -> IResult<&str, Literal> {

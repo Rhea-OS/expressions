@@ -87,6 +87,7 @@ impl PartialEq<&[Object]> for Object {
 impl PartialEq<Object> for Object {
     fn eq(&self, other: &Object) -> bool {
         match (self, other) {
+            (Object::Nothing, Object::Nothing) => true,
             (Object::Number(l), Object::Number(r)) => l == r,
             (Object::String(l), Object::String(r)) => l == r,
             (Object::Boolean(l), Object::Boolean(r)) => l == r,
