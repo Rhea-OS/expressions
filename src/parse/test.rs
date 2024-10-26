@@ -188,6 +188,18 @@ pub mod test {
     }
 
     #[test]
+    pub fn test_access_on_inline_list() -> Result<()> {
+        assert_eq!(parse("([1]).0")?, Value::Access(Access {
+            left: Box::new(Value::List(List {
+                items: vec![Value::Literal(Literal::Number(1.0))],
+            })),
+            member: Literal::Number(0.0f64)
+        }));
+
+        Ok(())
+    }
+
+    #[test]
     pub fn test_associative_array() -> Result<()> {
         assert_eq!(parse("[tomato=1,beans=2,cheese=3]")?, Value::AssociativeArray(AssociativeArray {
             items: vec![

@@ -36,6 +36,8 @@ fn parse_number(input: &str) -> IResult<&str, Literal> {
     parser::map(parser::alt((
         parse_integer,
         parse_decimal,
+
+        // These can fail fast because they have tags, however they are not used nearly as often as the above two.
         parse_hex,
         parse_oct,
         parse_bin,
