@@ -17,7 +17,7 @@ export default {
     },
     async "build:main.js"(config) {
         await esbuild.build({
-            entryPoints: ["lib.ts"],
+            entryPoints: ["unit.ts"],
             bundle: true,
             sourcemap: true,
             format: 'esm',
@@ -29,7 +29,7 @@ export default {
     },
     async "build:lib.d.ts"(config) {
     //     await esbuild.build({
-    //         entryPoints: ["./lib.ts"],
+    //         entryPoints: ["./unit.ts"],
     //         bundle: true,
     //         sourcemap: true,
     //         format: "esm",

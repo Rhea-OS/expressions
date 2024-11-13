@@ -43,7 +43,7 @@ $ cargo update
 $ cd expression-js
 $ pnpm install esbuild
 $ wasm-pack build --out build/mod
-$ pnpm exec esbuild ./lib.ts --bundle --sourcemap --format=esm --loader:.wasm=binary --outdir=build/pkg
+$ pnpm exec esbuild ./unit.ts --bundle --sourcemap --format=esm --loader:.wasm=binary --outdir=build/pkg
 ```
 
 This produces the following important files:
