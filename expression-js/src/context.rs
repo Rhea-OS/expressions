@@ -1,15 +1,19 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::{
     JsValue,
     UnwrapThrowExt,
     prelude::*
 };
+use wasm_bindgen::__rt::WasmRefCell;
 use expression::error::*;
+use expression::Object;
 use crate::DataSource;
 
 #[wasm_bindgen(js_name=Context)]
 pub struct Context {
     cx: expression::Context<DataSource>,
+    global_context: Rc<WasmRefCell<Object>>
 }
 
 /// This function attempts to convert a JS value into its native equivalent.
@@ -26,6 +30,8 @@ pub struct Context {
 /// fail automatic conversation will be dropped silently.
 pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
     Some(match value {
+        value if value.is_null() || value.is_undefined() => expression::Object::Nothing,
+
         value if value.is_string() => expression::Object::String(value.as_string()?),
         value if value.is_array() => expression::Object::List(js_sys::Array::from(&value)
             .into_iter()
@@ -56,7 +62,7 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
             .flat_map(|key| js_value_to_object(js_sys::Reflect::get(&value, &JsValue::from_str(&key)).ok()?)
                 .map(|value| (key.clone(), value)))
             .collect()),
-        value if value.is_null() => expression::Object::Nothing,
+
         value if value.is_falsy() => expression::Object::Boolean(false),
         value if value.is_truthy() => expression::Object::Boolean(true),
         _ => None?,
@@ -93,7 +99,8 @@ pub(crate) fn value_to_js_object(value: expression::Object) -> Option<JsValue> {
 
             JsValue::from(key_map)
         },
-        _ => todo!() // TODO: Addresses
+        expression::Object::Nothing => JsValue::null(),
+        expression::Object::Function(_) => wasm_bindgen::throw_str("Cannot convert Rust closure to JS value"),
     })
 }
 
@@ -101,8 +108,14 @@ pub(crate) fn value_to_js_object(value: expression::Object) -> Option<JsValue> {
 impl Context {
     #[wasm_bindgen(constructor)]
     pub fn new(config: DataSource) -> crate::Context {
+        let cx = config.cx.clone();
+        
         Self {
+            global_context: cx.clone(),
             cx: expression::Context::new(config)
+                .with_global("cx", Object::function(move |_| {
+                    Ok(cx.borrow().clone())
+                })),
         }
     }
 
@@ -139,10 +152,13 @@ impl Context {
     }
 
     #[wasm_bindgen(js_name = evaluate)]
-    pub fn evaluate(&self, expression: js_sys::JsString) -> JsValue {
+    pub fn evaluate(&self, expression: js_sys::JsString, cx: JsValue) -> JsValue {
         let Some(expr) = expression.as_string() else {
             wasm_bindgen::throw_str("Expression could not be cast to native string");
         };
+
+        *self.global_context.borrow_mut() = js_value_to_object(cx)
+            .unwrap_throw();
 
         let error_message_or_result = self.cx.evaluate(expr)
             .map_err(|error| match error.into_inner() {

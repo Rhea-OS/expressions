@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import cp from "node:child_process";
-import {chalk, esbuild, is_source, log, Path, util} from 'builder';
-import dtsPlugin from "esbuild-plugin-d.ts";
+import {esbuild} from 'builder';
 
 export default {
     async "build:main.wasm"(config) {

@@ -1,10 +1,8 @@
-use alloc::string::String;
-use core::num::ParseIntError;
-use nom::{
-    error::{FromExternalError, ParseError},
-    IResult
-};
+use alloc::format;
 use crate::parse::parser;
+use alloc::string::{String, ToString};
+use core::num::ParseIntError;
+use nom::{error::{FromExternalError, ParseError}, FindToken, IResult};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Key {
@@ -16,7 +14,8 @@ impl Key {
     pub(super) fn parse(input: &str) -> IResult<&str, Self> {
         parser::alt((
             parser::map(parse_name, Key::Name),
-            parser::map(parse_string, Key::String),
+            parser::map(parse_string('"', '"'), Key::String),
+            parser::map(parse_string('\'', '\''), Key::String),
         ))(input)
     }
 }
@@ -30,7 +29,10 @@ fn parse_name(input: &str) -> IResult<&str, String> {
         if nom_unicode::is_alphabetic(c) || c == '_' || c == '$' {
             str.push(c);
         } else {
-            return Err(nom::Err::Error(nom::error::Error { input, code: nom::error::ErrorKind::NonEmpty }))
+            return Err(nom::Err::Error(nom::error::Error {
+                input,
+                code: nom::error::ErrorKind::NonEmpty,
+            }));
         }
     }
 
@@ -76,6 +78,7 @@ where
             parser::value('\\', parser::char('\\')),
             parser::value('/', parser::char('/')),
             parser::value('"', parser::char('"')),
+            parser::value('\'', parser::char('\'')),
         )),
     )(input)
 }
@@ -86,12 +89,6 @@ fn parse_escaped_whitespace<'a, E: ParseError<&'a str>>(
     parser::preceded(parser::char('\\'), parser::multispace1)(input)
 }
 
-fn parse_literal<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
-    let not_quote_slash = parser::is_not("\"\\");
-
-    parser::verify(not_quote_slash, |s: &str| !s.is_empty())(input)
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
     Literal(&'a str),
@@ -99,34 +96,42 @@ enum StringFragment<'a> {
     EscapedWS,
 }
 
-fn parse_fragment<'a, E>(input: &'a str) -> IResult<&'a str, StringFragment<'a>, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
-{
-    parser::alt((
-        parser::map(parse_literal, StringFragment::Literal),
-        parser::map(parse_escaped_char, StringFragment::EscapedChar),
-        parser::value(StringFragment::EscapedWS, parse_escaped_whitespace),
-    ))(input)
+struct Str(String);
+
+impl FindToken<char> for Str {
+    fn find_token(&self, token: char) -> bool {
+        self.0.chars().any(|c| token == c)
+    }
 }
 
-fn parse_string<'a, E>(input: &'a str) -> IResult<&'a str, String, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, ParseIntError>,
-{
-    let build_string = nom::multi::fold_many0(parse_fragment, String::new, |mut string, fragment| match fragment{
-        StringFragment::Literal(lit) => {
-            string.push_str(lit);
-            string
-        },
-        StringFragment::EscapedChar(c) => {
-            string.push(c);
-            string
-        },
-        StringFragment::EscapedWS => {
-            string
-        }
-    });
+pub(crate) fn parse_string<'a>(start: char, end: char) -> impl Fn(&'a str) -> IResult<&'a str, String> {
+    move |input| {
+        let terminator = Str(format!("{}\\", end));
 
-    parser::delimited(parser::char('"'), build_string, parser::char('"'))(input)
+        let parse_literal = parser::verify(parser::is_not(terminator), |s: &str| !s.is_empty());
+
+        let fragment = parser::alt((
+            parser::map(parse_literal, StringFragment::Literal),
+            parser::map(parse_escaped_char, StringFragment::EscapedChar),
+            parser::value(StringFragment::EscapedWS, parse_escaped_whitespace),
+        ));
+
+        let parse_raw_string = nom::multi::fold_many0(
+            fragment,
+            String::new,
+            |mut string, fragment| match fragment {
+                StringFragment::Literal(lit) => {
+                    string.push_str(lit);
+                    string
+                }
+                StringFragment::EscapedChar(c) => {
+                    string.push(c);
+                    string
+                }
+                StringFragment::EscapedWS => string,
+            },
+        );
+
+        parser::delimited(parser::char(start), parse_raw_string, parser::char(end))(input)
+    }
 }

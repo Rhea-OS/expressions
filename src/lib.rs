@@ -16,6 +16,7 @@ use alloc::vec::Vec;
 pub use crate::error::*;
 pub use crate::eval::*;
 pub use crate::eval::context::*;
+pub use crate::parse::literal::Address;
 
 /// # Row
 /// Represents a row of a table.
@@ -87,6 +88,8 @@ pub trait DataSource {
 
     /// How many rows the table contains
     fn num_rows(&self) -> usize;
+    
+    fn query(&self, addr: Address) -> Result<Object>;
 }
 
 pub struct EmptyProvider;
@@ -119,6 +122,10 @@ impl DataSource for EmptyProvider {
 
     fn num_rows(&self) -> usize {
         0
+    }
+    
+    fn query(&self, _addr: Address) -> Result<Object> {
+        Ok(Object::Nothing)
     }
 }
 

@@ -1,13 +1,21 @@
 use crate::{
-    eval::operators::get_standard_operators,
+    eval::globals::get_standard_globals,
+    parse::literal::Address,
     error::*,
+    eval::operators::get_standard_operators,
     eval::Object,
     parse::objects::*,
-    DataSource,
+    DataSource
 };
-use alloc::{borrow::ToOwned, boxed::Box, format, string::String, string::ToString, vec, vec::Vec};
+use alloc::{
+    borrow::ToOwned,
+    boxed::Box,
+    format,
+    string::String,
+    string::ToString,
+    vec::Vec
+};
 use nom::lib::std::collections::HashMap;
-use crate::eval::globals::get_standard_globals;
 
 /// # Context
 ///
@@ -252,6 +260,10 @@ where
         }
     }
 
+    fn query(&self, addr: Address) -> Result<Object> {
+        Ok(self.data_provider.query(addr)?)
+    }
+
     fn evaluate_value(&self, value: Value) -> Result<Object> {
         match value {
             Value::Expression(Expression { operands, operator }) => if let Some(operator) = self.operators.get(&operator) {
@@ -271,7 +283,7 @@ where
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                Literal::Address(address) => todo!()
+                Literal::Address(address) => self.query(address)
             }
 
             Value::Call(Call { name, arguments }) => self.call_object(self.evaluate_value(*name)?, &arguments

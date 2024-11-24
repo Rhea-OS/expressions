@@ -7,7 +7,7 @@ pub mod test {
     use crate::parse::call::Call;
     use crate::parse::expression::Expression;
     use crate::parse::key::Key;
-    use crate::parse::literal::Literal;
+    use crate::parse::literal::{Address, Column, Literal};
     use crate::parse::*;
     use crate::parse::access::Access;
     use crate::parse::associative_array::AssociativeArray;
@@ -160,6 +160,11 @@ pub mod test {
         assert_matches!(Key::parse(r#""Hello\"World""#), Ok(("", Key::String(name))) if name == "Hello\"World");
         assert_matches!(Key::parse(r#""Hello"World""#), Ok(("World\"", Key::String(name))) if name == "Hello");
 
+        assert_matches!(Key::parse(r#"'Hello World'"#), Ok(("", Key::String(name))) if name == "Hello World");
+        assert_matches!(Key::parse(r#"'Hello\nWorld'"#), Ok(("", Key::String(name))) if name == "Hello\nWorld");
+        assert_matches!(Key::parse(r#"'Hello\"World'"#), Ok(("", Key::String(name))) if name == "Hello\"World");
+        assert_matches!(Key::parse(r#"'Hello'World'"#), Ok(("World\'", Key::String(name))) if name == "Hello");
+
         Ok(())
     }
 
@@ -223,6 +228,26 @@ pub mod test {
             member: Literal::Name("x".into())
         }));
 
+        Ok(())
+    }
+    
+    #[test]
+    pub fn test_parse_address() -> Result<()> {
+        assert_eq!(parse("{{Hello}}")?, Value::Literal(Literal::Address(Address {
+            column: Column::Name("Hello".into()),
+            row: None,
+        })));
+
+        assert_eq!(parse("{A1}")?, Value::Literal(Literal::Address(Address {
+            column: Column::Number("A".into()),
+            row: Some("1".into()),
+        })));
+
+        assert_eq!(parse("{{A}1}")?, Value::Literal(Literal::Address(Address {
+            column: Column::Name("A".into()),
+            row: Some("1".into()),
+        })));
+        
         Ok(())
     }
 }

@@ -1,8 +1,40 @@
+use std::rc::Rc;
+use js_sys::JsString;
 use wasm_bindgen::{
     JsValue,
     UnwrapThrowExt,
     prelude::*
 };
+use wasm_bindgen::__rt::WasmRefCell;
+use wasm_bindgen::convert::{FromWasmAbi, IntoWasmAbi};
+use expression::{ManualError, Object};
+use crate::context::{js_value_to_object, value_to_js_object};
+
+#[wasm_bindgen(js_name=Address)]
+pub struct Address(expression::Address);
+
+#[wasm_bindgen(js_class = Address)]
+impl Address {
+    #[wasm_bindgen(constructor)]
+    pub fn new(address: js_sys::JsString) -> Self {
+        let Some(address) = address.as_string() else {
+            wasm_bindgen::throw_str("Expected Address");
+        };
+
+        if let Ok((_, address)) = expression::Address::parse(&address) {
+            Self(address)
+        } else {
+            wasm_bindgen::throw_str("failed to parse address");
+        }
+    }
+}
+
+impl Address {
+    pub fn from(addr: expression::Address) -> Self {
+        Self(addr)
+    }
+}
+
 
 // TODO: Make type of parameter on DataSource::new() a `DataSourceConfig` type.
 #[wasm_bindgen(typescript_custom_section)]
@@ -12,6 +44,7 @@ const DATA_SOURCE_CONFIG: &'static str = r#"
         listRows: () => Record<string, any>[],
         getRow: (row: number) => Record<string, any>,
         countRows: () => number[],
+        query: (address: Address) => any | null
     };
 "#;
 
@@ -22,6 +55,9 @@ pub struct DataSource {
     get_row: js_sys::Function,
     count_rows: js_sys::Function,
     columns: Vec<String>,
+    query: js_sys::Function,
+
+    pub(crate) cx: Rc<WasmRefCell<Object>>
 }
 
 #[wasm_bindgen(js_class=DataSource)]
@@ -43,6 +79,9 @@ impl DataSource {
         let rows = list_columns.call0(&JsValue::null())
             .unwrap_throw();
 
+        let query = js_sys::Function::from(js_sys::Reflect::get(&config, &JsValue::from_str("query"))
+            .unwrap_throw());
+
         let arr = js_sys::Array::from(&rows);
 
         let columns = arr.into_iter()
@@ -55,6 +94,9 @@ impl DataSource {
             get_row,
             count_rows,
             columns,
+            query,
+
+            cx: Rc::new(WasmRefCell::new(Object::Nothing))
         }
     }
 }
@@ -113,5 +155,16 @@ impl expression::DataSource for DataSource {
             .unwrap_throw();
 
         rows.as_f64().unwrap_or_default() as usize
+    }
+
+    fn query(&self, addr: expression::Address) -> expression::Result<Object> {
+        let cx = value_to_js_object(self.cx.borrow().clone())
+            .unwrap_or(JsValue::null());
+        match self.query.call1(&cx, &JsValue::from(Address::from(addr))) {
+            Ok(value) => js_value_to_object(value)
+                .ok_or(ManualError::ConversionFailed.into()),
+            
+            Err(e) => wasm_bindgen::throw_val(e),
+        }
     }
 }

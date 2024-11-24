@@ -2,7 +2,7 @@
 
 The expression engine is written in Rust using the `no_std` flags, meaning it can be cleanly ported to other platforms
 with little effort. Naturally, JavaScript is somewhat special in this regard, making everyone's life harder. This
-library aims to provide high-level bindings to the library through as WASM interface.
+library aims to provide high-level bindings to the library through a WASM interface.
 
 As the expression engine was written from scratch with the intent to run under WASM, in order to leverage Rust's highly
 performant output code, it has very few dependencies.
@@ -21,7 +21,7 @@ $ pnpm exec build build:main.wasm build:main.js -f
 ```
 
 > [!important] In order for an integrated build such as above to be successful, the directory structure of the source
-> code must be taken into account. As this library is technically
+> code must be taken into account. As this library is
 > a [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) member, it depends on the base
 > expression engine through a relative path. If either of these packages are moved relative to each-other, the build may
 > fail.
@@ -59,13 +59,15 @@ When assembled into a module, yields a fully functional expression engine.
 
 The JS bindings are mostly auto generated but also partially hand-written, there is a chance that source updates to the
 base engine will break the bindings. If this is the case, you may need to rebuild from a clean slate by
-1. Clearing build artifacts on 
-   * The base engine
-   * The bindings
-   * The resulting bundle
+
+1. Clearing build artifacts on
+    * The base engine
+    * The bindings
+    * The resulting bundle
 2. Rebuild from scratch.
 
-It is unfortunately not trivially possible to make cargo an npm interact when it comes to the build process. 
-This makes it somewhat difficult to cleanly tie NodeJS imports and wasm artefacts together.
-As a result, `package.json` specifies [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in order to simplify the linking process. 
-Unfortunately, this means that the structure of build artifacts is more-or-less fixed. Please ensure that you use the correct build structure during manual buidls.
+It is unfortunately not trivially possible to make cargo and npm interact when it comes to the build process.
+This makes it somewhat difficult to cleanly tie NodeJS imports and wasm artefacts together. As a result, `package.json`
+specifies [subpath imports](https://nodejs.org/api/packages.html#subpath-imports) in order to simplify the linking process.
+Unfortunately, this means that the structure of build artifacts is more-or-less fixed. Please ensure that you use the
+correct build structure during manual builds.
