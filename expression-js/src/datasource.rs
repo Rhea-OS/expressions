@@ -32,7 +32,7 @@ impl Address {
         match &self.0.column {
             Column::Number(col) => {
                 let mut col_number = 0;
-                for char in col.chars().map(|i| i.to_ascii_uppercase()).filter(|i| i.is_ascii_alphabetic()) {
+                for char in col.chars().map(|i| i.to_ascii_lowercase()).filter(|i| i.is_ascii_alphabetic()) {
                     col_number = 10 * col_number + (char as u8 - 97) as u32;
                 }
                 Some(col_number)
