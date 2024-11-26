@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::{
     JsValue,
@@ -28,18 +27,23 @@ pub struct Context {
 ///
 /// > **Note:** Nested values such as those in lists or associative arrays which
 /// fail automatic conversation will be dropped silently.
-pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
+pub(crate) fn js_value_to_object(value: JsValue) -> Option<Object> {
+    if let Some(number) = value.as_f64() { 
+        return Some(Object::Number(number));
+    }
+    
     Some(match value {
-        value if value.is_null() || value.is_undefined() => expression::Object::Nothing,
+        value if value.is_null() || value.is_undefined() => Object::Nothing,
 
-        value if value.is_string() => expression::Object::String(value.as_string()?),
-        value if value.is_array() => expression::Object::List(js_sys::Array::from(&value)
+        value if value.is_string() => Object::String(value.as_string()?),
+        value if value.is_array() => Object::List(js_sys::Array::from(&value)
             .into_iter()
             .flat_map(js_value_to_object)
             .collect()),
+        
         value if value.is_function() => {
             let value = value.clone();
-            expression::Object::Function(Rc::new(Box::new(move |args| {
+            Object::Function(Rc::new(Box::new(move |args| {
                 let args = js_sys::Array::from_iter(args.into_iter()
                     .map(value_to_js_object)
                     .map(|i| i.ok_or(Into::<Error>::into(ManualError::ConversionFailed)))
@@ -63,8 +67,8 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
                 .map(|value| (key.clone(), value)))
             .collect()),
 
-        value if value.is_falsy() => expression::Object::Boolean(false),
-        value if value.is_truthy() => expression::Object::Boolean(true),
+        value if value.is_falsy() => Object::Boolean(false),
+        value if value.is_truthy() => Object::Boolean(true),
         _ => None?,
     })
 }
@@ -82,14 +86,14 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<expression::Object> {
 ///
 /// > **Note:** Nested values such as those in lists or associative arrays which
 /// fail automatic conversation will be dropped silently.
-pub(crate) fn value_to_js_object(value: expression::Object) -> Option<JsValue> {
+pub(crate) fn value_to_js_object(value: Object) -> Option<JsValue> {
     Some(match value {
-        expression::Object::Number(num) => num.into(),
-        expression::Object::Boolean(bool) => bool.into(),
-        expression::Object::String(str) => JsValue::from_str(&str),
-        expression::Object::List(list) => JsValue::from(js_sys::Array::from_iter(list.into_iter()
+        Object::Number(num) => js_sys::Number::from(num).into(),
+        Object::Boolean(bool) => js_sys::Boolean::from(bool).into(),
+        Object::String(str) => JsValue::from_str(&str),
+        Object::List(list) => JsValue::from(js_sys::Array::from_iter(list.into_iter()
             .flat_map(value_to_js_object))),
-        expression::Object::AssociativeArray(arr) => {
+        Object::AssociativeArray(arr) => {
             let key_map = js_sys::Object::new();
 
             for (key, value) in arr {
@@ -99,17 +103,17 @@ pub(crate) fn value_to_js_object(value: expression::Object) -> Option<JsValue> {
 
             JsValue::from(key_map)
         },
-        expression::Object::Nothing => JsValue::null(),
-        expression::Object::Function(_) => wasm_bindgen::throw_str("Cannot convert Rust closure to JS value"),
+        Object::Nothing => JsValue::null(),
+        Object::Function(_) => wasm_bindgen::throw_str("Cannot convert Rust closure to JS value"),
     })
 }
 
 #[wasm_bindgen(js_class=Context)]
 impl Context {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: DataSource) -> crate::Context {
+    pub fn new(config: DataSource) -> Context {
         let cx = config.cx.clone();
-        
+
         Self {
             global_context: cx.clone(),
             cx: expression::Context::new(config)

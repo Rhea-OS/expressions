@@ -17,6 +17,7 @@ pub use crate::error::*;
 pub use crate::eval::*;
 pub use crate::eval::context::*;
 pub use crate::parse::literal::Address;
+pub use crate::parse::literal::Column;
 
 /// # Row
 /// Represents a row of a table.

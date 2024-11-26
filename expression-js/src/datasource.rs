@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use js_sys::JsString;
 use wasm_bindgen::{
     JsValue,
     UnwrapThrowExt,
@@ -7,7 +6,7 @@ use wasm_bindgen::{
 };
 use wasm_bindgen::__rt::WasmRefCell;
 use wasm_bindgen::convert::{FromWasmAbi, IntoWasmAbi};
-use expression::{ManualError, Object};
+use expression::{Column, ManualError, Object};
 use crate::context::{js_value_to_object, value_to_js_object};
 
 #[wasm_bindgen(js_name=Address)]
@@ -27,6 +26,34 @@ impl Address {
             wasm_bindgen::throw_str("failed to parse address");
         }
     }
+
+    #[wasm_bindgen(getter)]
+    pub fn column(&self) -> Option<u32> {
+        match &self.0.column {
+            Column::Number(col) => {
+                let mut col_number = 0;
+                for char in col.chars().map(|i| i.to_ascii_uppercase()).filter(|i| i.is_ascii_alphabetic()) {
+                    col_number = 10 * col_number + (char as u8 - 97) as u32;
+                }
+                Some(col_number)
+            }
+
+            Column::Name(_) => None
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn column_name(&self) -> Option<String> {
+        match &self.0.column {
+            Column::Number(_) => None,
+            Column::Name(name) => Some(name.clone()),
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn row(&self) -> Option<u32> {
+        self.0.row.as_ref().and_then(|i| i.parse().ok())
+    }
 }
 
 impl Address {
@@ -39,12 +66,12 @@ impl Address {
 // TODO: Make type of parameter on DataSource::new() a `DataSourceConfig` type.
 #[wasm_bindgen(typescript_custom_section)]
 const DATA_SOURCE_CONFIG: &'static str = r#"
-    export type DataSourceConfig = {
+    export type DataSourceConfig<Cx> = {
         listColumns: () => string[],
         listRows: () => Record<string, any>[],
         getRow: (row: number) => Record<string, any>,
         countRows: () => number[],
-        query: (address: Address) => any | null
+        query: (cx: Cx, address: Address) => any | null
     };
 "#;
 
@@ -160,7 +187,7 @@ impl expression::DataSource for DataSource {
     fn query(&self, addr: expression::Address) -> expression::Result<Object> {
         let cx = value_to_js_object(self.cx.borrow().clone())
             .unwrap_or(JsValue::null());
-        match self.query.call1(&cx, &JsValue::from(Address::from(addr))) {
+        match self.query.call2(&JsValue::null(), &cx, &JsValue::from(Address::from(addr))) {
             Ok(value) => js_value_to_object(value)
                 .ok_or(ManualError::ConversionFailed.into()),
             
