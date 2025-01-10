@@ -27,21 +27,6 @@ export default {
         });
     },
     async "build:lib.d.ts"(config) {
-    //     await esbuild.build({
-    //         entryPoints: ["./lib.ts"],
-    //         bundle: true,
-    //         sourcemap: true,
-    //         format: "esm",
-    //         outdir: config.out.join("tmp").path,
-    //         loader: {
-    //             ".wasm": "empty"
-    //         },
-    //         plugins: [dtsPlugin({
-    //             experimentalBundling: true,
-    //             outDir: config.out.join("pkg")
-    //         })]
-    //     });
-    //
         await fs.copyFile(config.out.join("mod/expression_js.d.ts").path, config.out.join("pkg/lib.d.ts").path);
     },
     async "build:package.json"(config) {
