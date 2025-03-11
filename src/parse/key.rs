@@ -21,13 +21,13 @@ impl Key {
 }
 
 fn parse_name(input: &str) -> IResult<&str, String> {
-    let mut str = String::with_capacity(input.len());
+    let mut name = String::with_capacity(input.len());
 
     let mut iter = input.chars();
 
     if let Some(c) = iter.next() {
         if nom_unicode::is_alphabetic(c) || c == '_' || c == '$' {
-            str.push(c);
+            name.push(c);
         } else {
             return Err(nom::Err::Error(nom::error::Error {
                 input,
@@ -38,13 +38,13 @@ fn parse_name(input: &str) -> IResult<&str, String> {
 
     while let Some(c) = iter.next() {
         if nom_unicode::is_alphanumeric(c) || c == '_' || c == '$' {
-            str.push(c);
+            name.push(c);
         } else {
             break;
         }
     }
 
-    Ok((&input[str.len()..], str))
+    Ok((&input[name.len()..], name))
 }
 
 fn parse_unicode<'a, E>(input: &'a str) -> IResult<&'a str, char, E>

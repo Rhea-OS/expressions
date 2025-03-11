@@ -1,9 +1,14 @@
-use expression::{
-    eval::Object,
-    Context,
-    DataSource
-};
 use std::io::Write;
+use expression::{
+    Context,
+    DataSource,
+    eval::Object
+};
+
+struct RowInner {
+    col1: String,
+    col2: f64
+}
 
 struct ExampleProvider {
     values: Vec<String>
@@ -20,10 +25,8 @@ impl DataSource for ExampleProvider {
 
 pub fn main() -> std::io::Result<()> {
     let cx = Context::new(ExampleProvider {
-        values: Vec::new()
+        values: vec![]
     });
-
-    let parser = cx.parse_context();
 
     let mut buffer = String::new();
 
@@ -33,7 +36,7 @@ pub fn main() -> std::io::Result<()> {
     while let Ok(len) = std::io::stdin().read_line(&mut buffer) {
         let program = buffer[0..len].trim();
 
-        match parser.parse(program) {
+        match cx.evaluate(program) {
             Ok(result) => println!("{:#?}", result),
             Err(err) => println!("Error: {:?}", err)
         }

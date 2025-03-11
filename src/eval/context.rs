@@ -125,7 +125,6 @@ where
     ///     Context,
     ///     DataSource,
     ///     EmptyProvider,
-    ///     Row,
     ///     eval::Object
     /// };
     ///
@@ -147,7 +146,6 @@ where
     ///     Context,
     ///     DataSource,
     ///     EmptyProvider,
-    ///     Row,
     ///     eval::Object
     /// };
     ///
@@ -168,7 +166,6 @@ where
     ///     Context,
     ///     DataSource,
     ///     EmptyProvider,
-    ///     Row,
     ///     eval::Object,
     ///     eval::context::OperatorBuilder
     /// };
@@ -200,7 +197,6 @@ where
     ///     Context,
     ///     DataSource,
     ///     EmptyProvider,
-    ///     Row,
     ///     eval::Object,
     ///     eval::context::OperatorBuilder
     /// };
@@ -260,8 +256,8 @@ where
         }
     }
 
-    fn query(&self, addr: Address) -> Result<Object> {
-        Ok(self.data_provider.query(addr)?)
+    fn query(&self, query: impl AsRef<str>) -> Option<Object> {
+        Some(self.data_provider.query(query)?)
     }
 
     fn evaluate_value(&self, value: Value) -> Result<Object> {
@@ -283,7 +279,8 @@ where
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                Literal::Address(address) => self.query(address)
+                Literal::Address(address) => self.query(&address.query)
+                    .ok_or(ManualError::EmptyResultSet(address.query).into())
             }
 
             Value::Call(Call { name, arguments }) => self.call_object(self.evaluate_value(*name)?, &arguments
