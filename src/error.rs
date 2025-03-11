@@ -83,7 +83,8 @@ pub enum ManualError {
     InsufficientOperands(String),
     CannotCastToString,
     ConversionFailed,
-    ExpectedType(String)
+    ExpectedType(String),
+    EmptyResultSet(String),
 }
 
 impl core::error::Error for ManualError {}

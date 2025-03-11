@@ -5,10 +5,11 @@ use crate::parse::parser;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
+use nom::Err::Error;
 use nom::IResult;
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum Literal {
+pub enum Literal { // TODO: pub(crate)
     Name(String),
     Number(f64),
     String(String),
@@ -25,11 +26,11 @@ impl From<Key> for Literal {
 }
 
 impl Literal {
-    pub(super) fn parse(input: &str) -> IResult<&str, Self> {
+    pub fn parse(input: &str) -> IResult<&str, Self> { // TODO: pub(super)
         parser::alt((
+            parse_address,
             parse_number,
             parser::map(Key::parse, Literal::from),
-            parse_address,
         ))(input)
     }
 }
@@ -172,8 +173,7 @@ fn parse_integer(input: &str) -> IResult<&str, f64> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Address {
-    pub column: Column,
-    pub row: Option<String>,
+    pub query: String
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -187,20 +187,32 @@ impl Address {
         parser::map(
             parser::delimited(
                 parser::char('{'),
-                parser::tuple((
-                    parser::alt((
-                        parser::map(parse_string('{', '}'), |frag| Column::Name(frag)),
-                        parser::map(parser::alpha1, |col: &str| Column::Number(col.into())),
-                    )),
-                    parser::opt(parser::digit1),
-                )),
+                bracket_count,
                 parser::char('}'),
-            ),
-            |(column, row): (Column, Option<&str>)| Address { column, row: row.map(ToOwned::to_owned) },
+            ), |query| Address {
+                query: query.to_owned()
+            },
         )(input)
     }
 }
 
 fn parse_address(input: &str) -> IResult<&str, Literal> {
-    parser::map(Address::parse, |addr| Literal::Address(addr))(input)
+    parser::map(Address::parse, Literal::Address)(input)
+}
+
+fn bracket_count(input: &str) -> IResult<&str, String> {
+    let mut bcount = 0;
+
+    let matched = input.chars()
+        .take_while(|char| {
+            match *char {
+                '{' => bcount += 1,
+                '}' => bcount -= 1,
+                _ => ()
+            };
+            return bcount >= 0;
+        })
+        .collect::<String>();
+
+    Ok((&input[matched.len()..], matched))
 }

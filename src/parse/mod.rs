@@ -2,7 +2,7 @@ pub(crate) mod key;
 pub(crate) mod call;
 pub(crate) mod access;
 pub(crate) mod list;
-pub(crate) mod literal;
+pub mod literal; // TODO: pub(crate)
 pub(crate) mod associative_array;
 pub(crate) mod expression;
 pub(crate) mod value;
