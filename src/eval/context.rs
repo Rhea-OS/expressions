@@ -218,36 +218,6 @@ where
         self.operators.insert(operator.symbol.clone(), operator);
     }
 
-    // pub fn resolve_name(&self, name: String) -> Result<Object> {
-    //     let mut chain = name.split('.');
-    //
-    //     'outer: {
-    //         if let Some(obj) = chain.next().and_then(|key| self.globals.get(key)) {
-    //             let mut object = obj;
-    //
-    //             while let Some(next) = chain.next() {
-    //                 match object {
-    //                     Object::AssociativeArray(arr) => if let Some(obj) = arr.get(next) {
-    //                         object = obj;
-    //                     } else {
-    //                         break 'outer;
-    //                     },
-    //                     Object::List(list) => if let Ok(Some(obj)) = next.parse::<usize>().map(|a| list.get(a)) {
-    //                         object = obj
-    //                     } else {
-    //                         break 'outer;
-    //                     },
-    //                     _ => break 'outer,
-    //                 }
-    //             }
-    //
-    //             return Ok(object.clone());
-    //         }
-    //     }
-    //
-    //     Err(ManualError::NoSuchValue(name.clone()).into())
-    // }
-
     pub fn call_object(&self, object: Object, arguments: &[Object]) -> Result<Object> {
         if let Object::Function(obj) = object {
             obj(arguments.iter().cloned().collect())
@@ -279,8 +249,8 @@ where
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                Literal::Address(address) => self.query(&address.query)
-                    .ok_or(ManualError::EmptyResultSet(address.query).into())
+                Literal::Address(address) => Ok(self.query(&address.query)
+                    .unwrap_or(Object::Nothing)),
             }
 
             Value::Call(Call { name, arguments }) => self.call_object(self.evaluate_value(*name)?, &arguments
