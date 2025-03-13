@@ -104,7 +104,13 @@ pub(crate) fn value_to_js_object(value: Object) -> Option<JsValue> {
             JsValue::from(key_map)
         },
         Object::Nothing => JsValue::null(),
-        Object::Function(_) => wasm_bindgen::throw_str("Cannot convert Rust closure to JS value"),
+        Object::Function(function) => JsClosure::new(move |args| -> JsValue {
+            wasm_bindgen::throw_str("Fuck you");
+            function(vec![])
+                .map(value_to_js_object)
+                .unwrap_throw()
+                .unwrap_throw()
+        }).into(),
     })
 }
 
@@ -171,6 +177,7 @@ impl Context {
                 global::Inner::ManualError(ManualError::NoSuchOperator(op)) => format!("The operator '{}' was not recognised", op),
                 global::Inner::ManualError(ManualError::NoSuchValue(value)) => format!("'{}' is not defined", value),
                 global::Inner::ManualError(ManualError::OperationNotValidForType(op)) => format!("The operation '{}' was attempted on an invalid type", op),
+                global::Inner::ManualError(ManualError::EmptyResultSet(query)) => format!("The query '{}' returned no results", query),
                 err => format!("Miscellaneous Error: {:?}", err)
             });
 
@@ -183,6 +190,19 @@ impl Context {
             res
         } else {
             wasm_bindgen::throw_str("Unable to convert result back into JS");
+        }
+    }
+}
+
+#[wasm_bindgen]
+struct JsClosure {
+    closure: Closure<dyn Fn()>,
+}
+
+impl JsClosure {
+    pub fn new(handler: impl Fn(JsValue) -> JsValue + 'static) -> Self {
+        Self {
+            closure: Closure::new(|| {})
         }
     }
 }

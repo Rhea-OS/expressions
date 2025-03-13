@@ -10,7 +10,6 @@ pub mod error;
 pub mod parse;
 pub mod eval;
 mod vec;
-// mod hashmap;
 
 pub use crate::error::*;
 pub use crate::eval::*;
@@ -19,7 +18,7 @@ pub use crate::parse::literal::Address;
 pub use crate::parse::literal::Column;
 
 /// # Data Source
-/// A datasource may be thought of as a self-contained table.
+/// A datasource which responds to queries.
 /// It may produce its values either by reading them from a data source or computing them directly.
 ///
 /// ## Examples of where data sources are useful
