@@ -1,11 +1,9 @@
-use alloc::borrow::ToOwned;
-use crate::parse::key::parse_string;
 use crate::parse::key::Key;
 use crate::parse::parser;
+use alloc::borrow::ToOwned;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use nom::Err::Error;
 use nom::IResult;
 
 #[derive(Debug, PartialEq)]

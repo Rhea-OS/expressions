@@ -1,8 +1,11 @@
-use alloc::format;
 use crate::parse::parser;
-use alloc::string::{String, ToString};
+use alloc::format;
+use alloc::string::String;
 use core::num::ParseIntError;
-use nom::{error::{FromExternalError, ParseError}, FindToken, IResult};
+use nom::error::FromExternalError;
+use nom::error::ParseError;
+use nom::FindToken;
+use nom::IResult;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Key {

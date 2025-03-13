@@ -1,18 +1,17 @@
 use crate::{
-    vec::Acc,
     error::*,
     eval::context::Operator,
     eval::context::OperatorBuilder,
-    eval::Object
+    eval::Object,
+    vec::Acc
 };
 use alloc::{
-    string::String,
     borrow::ToOwned,
     format,
+    string::String,
     vec,
     vec::Vec
 };
-use alloc::string::ToString;
 use core::ops::Add;
 
 pub(crate) fn get_standard_operators() -> Vec<Operator> {
