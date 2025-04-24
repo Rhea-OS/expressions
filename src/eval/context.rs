@@ -15,6 +15,7 @@ use alloc::{
     string::ToString,
     vec::Vec
 };
+use alloc::rc::Rc;
 use nom::lib::std::collections::HashMap;
 
 /// # Context
@@ -39,8 +40,9 @@ pub struct Context<Provider: DataSource> {
     pub(crate) operators: HashMap<String, Operator>,
 }
 
+#[derive(Clone)]
 pub struct Operator {
-    handler: Box<dyn Fn(&[Object]) -> Result<Object>>,
+    handler: Rc<Box<dyn Fn(&[Object]) -> Result<Object>>>,
     symbol: String,
     pub(crate) precedence: i64,
     operands: usize,
@@ -87,7 +89,7 @@ impl OperatorBuilder {
         if let Some(handler) = self.handler {
             if let Some(symbol) = self.symbol {
                 return Operator {
-                    handler,
+                    handler: Rc::new(handler),
                     symbol,
                     precedence: self.precedence,
                     operands: self.operands,
@@ -243,6 +245,8 @@ where
             }
 
             Value::Literal(literal) => match literal {
+                Literal::Nothing => Ok(Object::Nothing),
+                Literal::Bool(bool) => Ok(Object::Boolean(bool)),
                 Literal::Number(number) => Ok(Object::Number(number)),
                 Literal::String(string) => Ok(Object::String(string)),
                 Literal::Name(name) => self.globals.get(name.as_str())
@@ -293,5 +297,56 @@ where
     pub fn evaluate(&self, expression: impl AsRef<str>) -> Result<Object> {
         let ast = self.parse(expression.as_ref())?;
         Ok(self.evaluate_value(ast)?)
+    }
+
+    pub fn provider(&self) -> &Provider {
+        self.data_provider.as_ref()
+    }
+
+    pub fn provider_mut(&mut self) -> &mut Provider {
+        self.data_provider.as_mut()
+    }
+}
+
+impl<Provider: DataSource + Clone + 'static> Context<Provider> {
+    /// # Functions
+    /// Registers a function on the context. This function is a utility function that makes reusing the context object more convenient.
+    ///
+    /// ```rust
+    /// use expression::{
+    ///     Context,
+    ///     DataSource,
+    ///     EmptyProvider,
+    ///     eval::Object
+    /// };
+    ///
+    /// let mut cx = Context::new(EmptyProvider::new());
+    /// cx.push_fn("example", |cx, args| {
+    ///     println!("{:?}", &cx.provider());
+    ///
+    ///     Ok(Object::Nothing)
+    /// });
+    ///
+    /// // Prints the provider.
+    /// assert_eq!(cx.evaluate(r#"example()"#).unwrap(), Object::Nothing);
+    /// ```
+    pub fn push_fn<F>(&mut self, name: impl AsRef<str>, f: F)
+    where
+        F: Fn(Self, &[Object]) -> Result<Object> + 'static,
+    {
+        let cx = self.clone();
+        self.push_global(name, Object::function(move |args| {
+            f(cx.clone(), &args)
+        }));
+    }
+}
+
+impl<Provider: DataSource + Clone> Clone for Context<Provider> {
+    fn clone(&self) -> Self {
+        Self {
+            globals: self.globals.clone(),
+            data_provider: self.data_provider.clone(),
+            operators: self.operators.clone(),
+        }
     }
 }

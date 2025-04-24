@@ -22,7 +22,7 @@ pub enum Value {
     AssociativeArray(AssociativeArray),
 }
 
-pub(super) fn value_parser<'a>(cx: ParseContext) -> impl Fn(&'a str) -> IResult<&'a str, Value> + 'a {
+pub(super) fn value_parser<'a>(cx: ParseContext) -> impl Fn(&'a str) -> IResult<&'a str, Value> {
     fn expr(rank: usize, cx: &ParseContext) -> impl Fn(&str) -> IResult<&str, Value> + '_ {
         move |input| {
             if let Some(operators) = cx.precedences.get(rank)

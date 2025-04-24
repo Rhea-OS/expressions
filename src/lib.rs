@@ -30,6 +30,12 @@ pub trait DataSource {
     fn query(&self, query: impl AsRef<str>) -> Option<Object>;
 }
 
+impl<T: DataSource> DataSource for &T {
+    fn query(&self, query: impl AsRef<str>) -> Option<Object> {
+        T::query(self, query)
+    }
+}
+
 pub struct EmptyProvider;
 
 impl EmptyProvider {

@@ -6,6 +6,7 @@ mod globals;
 use alloc::{string::String, string::ToString, borrow::ToOwned, vec::Vec, boxed::Box, rc::Rc, format};
 use core::fmt::{Debug, Display, Formatter};
 use nom::lib::std::collections::HashMap;
+use crate::{Context, DataSource};
 use crate::error::*;
 
 #[derive(Clone)]
@@ -14,14 +15,14 @@ pub enum Object {
     Boolean(bool),
     Number(f64),
     String(String),
-    Function(Rc<Box<dyn Fn(Vec<Object>) -> Result<Object>>>),
+    Function(Rc<dyn Fn(Vec<Object>) -> Result<Object>>),
     List(Vec<Object>),
     AssociativeArray(HashMap<String, Object>),
 }
 
 impl Object {
     pub fn function(fun: impl Fn(Vec<Object>) -> Result<Object> + 'static) -> Self {
-        Self::Function(Rc::new(Box::new(fun)))
+        Self::Function(Rc::new(fun))
     }
 
     pub fn datatype(&self) -> &str {
@@ -39,7 +40,7 @@ impl Object {
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", match self {
+        write!(f, "{}", match self {
             Object::Nothing => "nothing".to_owned(),
             Object::Boolean(v) => if *v { "true".to_owned() } else { "false".to_owned() },
             Object::Number(v) => v.to_string(),

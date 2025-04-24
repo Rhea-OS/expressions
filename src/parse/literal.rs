@@ -8,6 +8,8 @@ use nom::IResult;
 
 #[derive(Debug, PartialEq)]
 pub enum Literal { // TODO: pub(crate)
+    Nothing,
+    Bool(bool),
     Name(String),
     Number(f64),
     String(String),
@@ -26,6 +28,9 @@ impl From<Key> for Literal {
 impl Literal {
     pub fn parse(input: &str) -> IResult<&str, Self> { // TODO: pub(super)
         parser::alt((
+            parser::map(parser::tag("nothing"), |_| Literal::Nothing),
+            parser::map(parser::tag("true"), |_| Literal::Bool(true)),
+            parser::map(parser::tag("false"), |_| Literal::Bool(false)),
             parse_address,
             parse_number,
             parser::map(Key::parse, Literal::from),
