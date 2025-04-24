@@ -16,6 +16,7 @@ pub use crate::eval::*;
 pub use crate::eval::context::*;
 pub use crate::parse::literal::Address;
 pub use crate::parse::literal::Column;
+pub use crate::parse::value::Value;
 
 /// # Data Source
 /// A datasource which responds to queries.

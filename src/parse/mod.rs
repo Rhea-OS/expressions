@@ -1,12 +1,12 @@
-pub(crate) mod key;
-pub(crate) mod call;
-pub(crate) mod access;
-pub(crate) mod list;
-pub mod literal; // TODO: pub(crate)
-pub(crate) mod associative_array;
-pub(crate) mod expression;
-pub(crate) mod value;
-pub(crate) mod test;
+pub mod key;
+pub mod call;
+pub mod access;
+pub mod list;
+pub mod literal;
+pub mod associative_array;
+pub mod expression;
+pub mod value;
+pub mod test;
 
 use crate::{
     error::*,
@@ -42,7 +42,6 @@ pub(crate) mod objects {
     pub(crate) use crate::parse::literal::Literal;
     pub(crate) use crate::parse::value::Value;
 }
-
 
 pub struct ParseContext(Rc<ContextInner>);
 

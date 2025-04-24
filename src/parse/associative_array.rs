@@ -8,8 +8,8 @@ use crate::parse::{parser, ParseContext};
 use crate::parse::value::value_parser;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct AssociativeArray {
-    pub(crate) items: Vec<(Key, Value)>
+pub struct AssociativeArray {
+    pub items: Vec<(Key, Value)>
 }
 
 impl AssociativeArray {

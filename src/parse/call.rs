@@ -10,9 +10,9 @@ use crate::{
 use crate::parse::literal::Literal;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Call {
-    pub(crate) name: Box<Value>,
-    pub(crate) arguments: Vec<Value>
+pub struct Call {
+    pub name: Box<Value>,
+    pub arguments: Vec<Value>
 }
 
 impl Call {

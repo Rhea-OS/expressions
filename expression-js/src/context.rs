@@ -1,12 +1,12 @@
+use std::iter;
 use std::rc::Rc;
-use wasm_bindgen::{
-    JsValue,
-    UnwrapThrowExt,
-    prelude::*
-};
+use wasm_bindgen::{JsValue, UnwrapThrowExt, prelude::*};
 use wasm_bindgen::__rt::WasmRefCell;
 use expression::error::*;
 use expression::Object;
+use expression::Value;
+use expression::parse;
+use expression::parse::literal::Literal;
 use crate::DataSource;
 
 #[wasm_bindgen(js_name=Context)]
@@ -104,7 +104,7 @@ pub(crate) fn value_to_js_object(value: Object) -> Option<JsValue> {
             JsValue::from(key_map)
         },
         Object::Nothing => JsValue::null(),
-        Object::Function(function) => JsClosure::new(move |args| -> JsValue {
+        Object::Function(function) => JsClosure::new(move |_args| -> JsValue {
             wasm_bindgen::throw_str("Fuck you");
             function(vec![])
                 .map(value_to_js_object)
@@ -161,8 +161,8 @@ impl Context {
         unimplemented!("Use the `pushOperator` function instead");
     }
 
-    #[wasm_bindgen(js_name = evaluate)]
-    pub fn evaluate(&self, expression: js_sys::JsString, cx: JsValue) -> JsValue {
+    #[wasm_bindgen(js_name = evaluateStr)]
+    pub fn evaluate_str(&self, expression: js_sys::JsString, cx: JsValue) -> JsValue {
         let Some(expr) = expression.as_string() else {
             wasm_bindgen::throw_str("Expression could not be cast to native string");
         };
@@ -192,6 +192,52 @@ impl Context {
             wasm_bindgen::throw_str("Unable to convert result back into JS");
         }
     }
+
+    #[wasm_bindgen(js_name="parseStr")]
+    pub fn parse_str(&self, expr: String) -> Vec<Token> {
+        fn flatten(token: &mut Value) -> Option<Vec<Token>> {
+            match token {
+                Value::Expression(parse::expression::Expression { operator, ref mut operands }) if operands.len() > 0 => {
+                    let (first, rest) = operands.split_first_mut()?;
+
+                    Some(flatten(first)?
+                        .into_iter()
+                        .chain(iter::once(Token::new(operator.clone(), TokenType::Operator)))
+                        .chain(rest
+                            .into_iter()
+                            .filter_map(flatten)
+                            .flat_map(|i| i))
+                        .collect())
+                },
+                Value::Expression(parse::expression::Expression { operator, .. }) => Some(vec![Token::new(operator.clone(), TokenType::Operator)]),
+                Value::Literal(lit) => Some(vec![match lit {
+                    Literal::Name(name) => Token::new(name.clone(), TokenType::Name),
+                    Literal::String(str) => Token::new(str.clone(), TokenType::String),
+                    Literal::Number(num) => Token::new(format!("{}", num), TokenType::Num),
+                    Literal::Address(addr) => Token::new(format!("{{{content}}}", content=addr.query), TokenType::Address),
+                }]),
+                Value::Call(parse::call::Call { name, arguments }) => {
+                    Some(flatten(name)?
+                        .into_iter()
+                        .chain(iter::once(Token::new("(".to_owned(), TokenType::LParen)))
+                        .chain(arguments
+                            .iter_mut()
+                            .filter_map(flatten)
+                            .flat_map(|i| i))
+                        .chain(iter::once(Token::new(")".to_owned(), TokenType::RParen)))
+                        .collect())
+                },
+                Value::Access(_) => Some(vec![]),
+                Value::List(_) => Some(vec![]),
+                Value::AssociativeArray(_) => Some(vec![])
+            }
+        }
+
+        flatten(&mut match self.cx.parse(&expr) {
+            Ok(value) => value,
+            Err(err) => wasm_bindgen::throw_str(&format!("{:#?}", err))
+        }).unwrap_or(vec![])
+    }
 }
 
 #[wasm_bindgen]
@@ -205,4 +251,50 @@ impl JsClosure {
             closure: Closure::new(|| {})
         }
     }
+}
+
+
+#[wasm_bindgen]
+pub struct Token {
+    #[wasm_bindgen(js_name="type")]
+    pub token_type: TokenType,
+    token: String,
+//    #[wasm_bindgen(js_name="tokenOffset")]
+//    pub token_start: usize,
+}
+
+#[wasm_bindgen]
+impl Token {
+    #[wasm_bindgen]
+    pub fn token(&self) -> String {
+        self.token.clone()
+    }
+}
+
+impl Token {
+    pub fn new(token: impl AsRef<str>, r#type: TokenType) -> Self {
+        Self {
+            token_type: r#type,
+            token: token.as_ref().to_owned(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+#[wasm_bindgen]
+pub enum TokenType {
+    Name,
+    Operator,
+    LParen,
+    LBracket,
+    LBrace,
+    RParen,
+    RBracket,
+    RBrace,
+    Dot,
+    Comma,
+    Num,
+    String,
+    Bool,
+    Address
 }

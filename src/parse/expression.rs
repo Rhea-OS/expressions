@@ -7,9 +7,9 @@ use alloc::{
 };
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Expression {
-    pub(crate) operands: Vec<Value>,
-    pub(crate) operator: String,
+pub struct Expression {
+    pub operands: Vec<Value>,
+    pub operator: String,
 }
 
 impl Expression {

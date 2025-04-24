@@ -8,8 +8,8 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct List {
-    pub(crate) items: Vec<Value>
+pub struct List {
+    pub items: Vec<Value>
 }
 
 impl List {
