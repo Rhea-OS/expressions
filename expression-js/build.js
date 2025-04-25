@@ -43,5 +43,8 @@ export default {
 			main: "./lib.js",
 			typings: "./lib.d.ts"
 		}, null, 4));
+	},
+	async "build:readme.md"(config) {
+		await fs.writeFile(config.out.join('pkg/README.md'), await fs.readFile('./dist.md', {encoding: 'utf8'}));
 	}
 }
