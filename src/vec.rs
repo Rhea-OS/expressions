@@ -29,7 +29,7 @@ where
 impl<Item> Acc for Vec<Item> {
     type Item = Item;
 
-    fn acc<'a>(mut self, item: Self::Item) -> Self {
+    fn acc(mut self, item: Self::Item) -> Self {
         self.push(item);
         self
     }
