@@ -2,8 +2,8 @@ use wasm_bindgen::prelude::*;
 use expression::ManualError;
 use expression::error::*;
 use crate::{
-    context::js_value_to_object,
-    context::value_to_js_object,
+    convert::js_value_to_object,
+    convert::value_to_js_object,
 };
 
 #[wasm_bindgen(js_name = Operator)]

@@ -7,125 +7,24 @@ use expression::Object;
 use expression::Value;
 use expression::parse;
 use expression::parse::literal::Literal;
+use crate::convert::{js_value_to_object, value_to_js_object};
 use crate::DataSource;
 
 #[wasm_bindgen(js_name=Context)]
 pub struct Context {
-    cx: expression::Context<DataSource>,
+    expr: expression::Context<DataSource>,
     global_context: Rc<WasmRefCell<Object>>
-}
-
-/// This function attempts to convert a JS value into its native equivalent.
-///
-/// * `js_sys::String`s => `expression::Object::String`
-/// * `js_sys::Array`s => `expression::Object::List`
-/// * `js_sys::Object`s => `expression::Object::AssociativeArray`
-/// * `js_sys::Object + { [Symbol.address]: Address }`s => `expression::Object::Address` !
-/// * `js_sys::Null` => `expression::Object::Nothing`
-/// * `js_sys::falsy()` => `expression::Object::Boolean(false)`
-/// * `js_sys::truthy()` => `expression::Object::Boolean(true)`
-///
-/// > **Note:** Nested values such as those in lists or associative arrays which
-/// fail automatic conversation will be dropped silently.
-pub(crate) fn js_value_to_object(value: JsValue) -> Option<Object> {
-    if let Some(number) = value.as_f64() { 
-        return Some(Object::Number(number));
-    }
-    
-    Some(match value {
-        value if value.is_null() || value.is_undefined() => Object::Nothing,
-
-        value if value.is_string() => Object::String(value.as_string()?),
-        value if value.is_array() => Object::List(js_sys::Array::from(&value)
-            .into_iter()
-            .flat_map(js_value_to_object)
-            .collect()),
-        
-        value if value.is_function() => {
-            let value = value.clone();
-            Object::function(move |args| {
-                let args = js_sys::Array::from_iter(args.into_iter()
-                    .map(value_to_js_object)
-                    .map(|i| i.ok_or(Into::<Error>::into(ManualError::ConversionFailed)))
-                    .collect::<Result<Vec<_>>>()?
-                    .into_iter());
-                let result = js_sys::Function::from(value.clone()).call1(&JsValue::null(), &JsValue::from(args))
-                    .unwrap_throw();
-                js_value_to_object(result)
-                    .ok_or(ManualError::ConversionFailed.into())
-            })
-        },
-
-        // TODO: Detect Addresses
-        value if value.is_object() => expression::Object::AssociativeArray(js_sys::Reflect::own_keys(&value).ok()?
-            .into_iter()
-            .flat_map(|i| match i {
-                value if value.is_string() || value.is_symbol() => value.as_string(),
-                _ => None
-            })
-            .flat_map(|key| js_value_to_object(js_sys::Reflect::get(&value, &JsValue::from_str(&key)).ok()?)
-                .map(|value| (key.clone(), value)))
-            .collect()),
-
-        value if value.is_falsy() => Object::Boolean(false),
-        value if value.is_truthy() => Object::Boolean(true),
-        _ => None?,
-    })
-}
-
-
-/// This function attempts to convert a native value into its JS equivalent.
-///
-/// * `js_sys::String`s => `expression::Object::String`
-/// * `js_sys::Array`s => `expression::Object::List`
-/// * `js_sys::Object`s => `expression::Object::AssociativeArray`
-/// * `js_sys::Object + { [Symbol.address]: Address }`s => `expression::Object::Address` !
-/// * `js_sys::Null` => `expression::Object::Nothing`
-/// * `js_sys::falsy()` => `expression::Object::Boolean(false)`
-/// * `js_sys::truthy()` => `expression::Object::Boolean(true)`
-///
-/// > **Note:** Nested values such as those in lists or associative arrays which
-/// fail automatic conversation will be dropped silently.
-pub(crate) fn value_to_js_object(value: Object) -> Option<JsValue> {
-    Some(match value {
-        Object::Number(num) => js_sys::Number::from(num).into(),
-        Object::Boolean(bool) => js_sys::Boolean::from(bool).into(),
-        Object::String(str) => JsValue::from_str(&str),
-        Object::List(list) => JsValue::from(js_sys::Array::from_iter(list.into_iter()
-            .flat_map(value_to_js_object))),
-        Object::AssociativeArray(arr) => {
-            let key_map = js_sys::Object::new();
-
-            for (key, value) in arr {
-                js_sys::Reflect::set(&key_map, &JsValue::from_str(&key), &value_to_js_object(value)?)
-                    .unwrap_throw();
-            }
-
-            JsValue::from(key_map)
-        },
-        Object::Nothing => JsValue::null(),
-        Object::Function(function) => JsClosure::new(move |_args| -> JsValue {
-            wasm_bindgen::throw_str("Fuck you");
-            function(vec![])
-                .map(value_to_js_object)
-                .unwrap_throw()
-                .unwrap_throw()
-        }).into(),
-    })
 }
 
 #[wasm_bindgen(js_class=Context)]
 impl Context {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: js_sys::Object) -> Context {
-        let cx = DataSource::from_js(config);
+    pub fn new(provider: js_sys::Object) -> Context {
+        let provider = DataSource::from_js(provider);
 
         Self {
-            global_context: cx.cx.clone(),
-            cx: expression::Context::new(cx)
-                .with_fn("cx", move |cx, _| {
-                    Ok(cx.provider().cx.borrow().clone())
-                })
+            global_context: provider.ephemeral_cx.clone(),
+            expr: expression::Context::new(provider)
         }
     }
 
@@ -141,10 +40,10 @@ impl Context {
             wasm_bindgen::throw_str("Object could not be cast to target");
         };
 
-        self.cx.push_global(name, obj);
+        self.expr.push_global(name, obj);
     }
 
-    #[deprecated(note = "Use push_global instead")]
+    #[deprecated(note = "Use pushGlobal instead")]
     #[wasm_bindgen(js_name = withGlobal)]
     pub fn with_global(self, name: js_sys::JsString, global: JsValue) -> Self {
         unimplemented!("Use the `pushGlobal` function instead`")
@@ -152,10 +51,10 @@ impl Context {
 
     #[wasm_bindgen(js_name = pushOperator)]
     pub fn set_operator(&mut self, operator: crate::Operator) {
-        self.cx.push_operator(operator.into_operator());
+        self.expr.push_operator(operator.into_operator());
     }
 
-    #[deprecated(note = "Use push_operator instead")]
+    #[deprecated(note = "Use pushOperator instead")]
     #[wasm_bindgen(js_name = withOperator)]
     pub fn with_operator(self, name: js_sys::JsString, global: JsValue) -> Self {
         unimplemented!("Use the `pushOperator` function instead");
@@ -167,10 +66,9 @@ impl Context {
             wasm_bindgen::throw_str("Expression could not be cast to native string");
         };
 
-        *self.global_context.borrow_mut() = js_value_to_object(cx)
-            .unwrap_throw();
+        *self.global_context.borrow_mut() = js_value_to_object(cx).unwrap_throw();
 
-        let error_message_or_result = self.cx.evaluate(expr)
+        let error_message_or_result = self.expr.evaluate(expr)
             .map_err(|error| match error.into_inner() {
                 global::Inner::ManualError(ManualError::InsufficientOperands(op)) => format!("The operator '{}' did not receive the required number of operands.", op),
                 global::Inner::ManualError(ManualError::CannotCallNonFunctionObject()) => format!("Object not callable"),
@@ -186,11 +84,8 @@ impl Context {
             Err(err) => wasm_bindgen::throw_str(&err)
         };
 
-        if let Some(res) = value_to_js_object(res) {
-            res
-        } else {
-            wasm_bindgen::throw_str("Unable to convert result back into JS");
-        }
+        return value_to_js_object(res)
+            .unwrap_throw();
     }
 
     #[wasm_bindgen(js_name="parseStr")]
@@ -235,7 +130,7 @@ impl Context {
             }
         }
 
-        flatten(&mut match self.cx.parse(&expr) {
+        flatten(&mut match self.expr.parse(&expr) {
             Ok(value) => value,
             Err(err) => wasm_bindgen::throw_str(&format!("{:#?}", err))
         }).unwrap_or(vec![])
@@ -244,27 +139,14 @@ impl Context {
     #[wasm_bindgen(js_name="clone")]
     pub fn clone(&self) -> Self {
         Self {
-            cx: self.cx.clone(),
+            expr: self.expr.clone(),
             global_context: self.global_context.clone(),
         }
     }
 
     #[wasm_bindgen(js_name="provider")]
     pub fn provider(&self) -> JsValue {
-        self.cx.provider().inner.clone().into()
-    }
-}
-
-#[wasm_bindgen]
-struct JsClosure {
-    closure: Closure<dyn Fn()>,
-}
-
-impl JsClosure {
-    pub fn new(handler: impl Fn(JsValue) -> JsValue + 'static) -> Self {
-        Self {
-            closure: Closure::new(|| {})
-        }
+        self.expr.provider().inner.clone().into()
     }
 }
 
