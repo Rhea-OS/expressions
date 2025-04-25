@@ -43,7 +43,7 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<Object> {
         
         value if value.is_function() => {
             let value = value.clone();
-            Object::Function(Rc::new(Box::new(move |args| {
+            Object::function(move |args| {
                 let args = js_sys::Array::from_iter(args.into_iter()
                     .map(value_to_js_object)
                     .map(|i| i.ok_or(Into::<Error>::into(ManualError::ConversionFailed)))
@@ -53,7 +53,7 @@ pub(crate) fn js_value_to_object(value: JsValue) -> Option<Object> {
                     .unwrap_throw();
                 js_value_to_object(result)
                     .ok_or(ManualError::ConversionFailed.into())
-            })))
+            })
         },
 
         // TODO: Detect Addresses
@@ -117,15 +117,15 @@ pub(crate) fn value_to_js_object(value: Object) -> Option<JsValue> {
 #[wasm_bindgen(js_class=Context)]
 impl Context {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: DataSource) -> Context {
-        let cx = config.cx.clone();
+    pub fn new(config: js_sys::Object) -> Context {
+        let cx = DataSource::from_js(config);
 
         Self {
-            global_context: cx.clone(),
-            cx: expression::Context::new(config)
-                .with_global("cx", Object::function(move |_| {
-                    Ok(cx.borrow().clone())
-                })),
+            global_context: cx.cx.clone(),
+            cx: expression::Context::new(cx)
+                .with_fn("cx", move |cx, _| {
+                    Ok(cx.provider().cx.borrow().clone())
+                })
         }
     }
 
@@ -211,6 +211,8 @@ impl Context {
                 },
                 Value::Expression(parse::expression::Expression { operator, .. }) => Some(vec![Token::new(operator.clone(), TokenType::Operator)]),
                 Value::Literal(lit) => Some(vec![match lit {
+                    Literal::Nothing => Token::new("nothing".to_owned(), TokenType::Nothing),
+                    Literal::Bool(bool) => Token::new(format!("{}", bool), TokenType::Bool),
                     Literal::Name(name) => Token::new(name.clone(), TokenType::Name),
                     Literal::String(str) => Token::new(str.clone(), TokenType::String),
                     Literal::Number(num) => Token::new(format!("{}", num), TokenType::Num),
@@ -238,6 +240,19 @@ impl Context {
             Err(err) => wasm_bindgen::throw_str(&format!("{:#?}", err))
         }).unwrap_or(vec![])
     }
+
+    #[wasm_bindgen(js_name="clone")]
+    pub fn clone(&self) -> Self {
+        Self {
+            cx: self.cx.clone(),
+            global_context: self.global_context.clone(),
+        }
+    }
+
+    #[wasm_bindgen(js_name="provider")]
+    pub fn provider(&self) -> JsValue {
+        self.cx.provider().inner.clone().into()
+    }
 }
 
 #[wasm_bindgen]
@@ -259,8 +274,6 @@ pub struct Token {
     #[wasm_bindgen(js_name="type")]
     pub token_type: TokenType,
     token: String,
-//    #[wasm_bindgen(js_name="tokenOffset")]
-//    pub token_start: usize,
 }
 
 #[wasm_bindgen]
@@ -293,6 +306,7 @@ pub enum TokenType {
     RBrace,
     Dot,
     Comma,
+    Nothing,
     Num,
     String,
     Bool,

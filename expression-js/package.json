@@ -11,7 +11,8 @@
         "builder": "link:../../../builder",
         "chalk": "latest",
         "typescript": "latest",
-        "esbuild-plugin-d.ts": "latest"
+        "esbuild-plugin-d.ts": "latest",
+        "expression": "link:./build/pkg"
     },
     "imports": {
         "#mod/main.wasm": "./build/mod/expression_js_bg.wasm",
@@ -20,6 +21,10 @@
     "deploy": {
         "main": "run.js",
         "imports": {},
+        "exports": {
+            "default": "./lib.js",
+            "types": "./lib.d.ts"
+        },
         "scripts": null
     }
 }

@@ -43,30 +43,16 @@ impl Address {
     }
 }
 
-
-// TODO: Make type of parameter on DataSource::new() a `DataSourceConfig` type.
-#[wasm_bindgen(typescript_custom_section)]
-const DATA_SOURCE_CONFIG: &'static str = r#"
-    export type DataSourceConfig<Cx> = {
-        query: (cx: Cx, address: Address) => any | null
-    };
-"#;
-
-#[wasm_bindgen(js_name=DataSource)]
+#[derive(Clone)]
 pub struct DataSource {
-    query_handler: js_sys::Function,
-
+    pub(crate) inner: js_sys::Object,
     pub(crate) cx: Rc<WasmRefCell<Object>>
 }
 
-#[wasm_bindgen(js_class=DataSource)]
 impl DataSource {
-    #[wasm_bindgen(constructor)]
-    pub fn new(config: JsValue) -> crate::DataSource {
-        crate::DataSource {
-            query_handler: js_sys::Function::from(js_sys::Reflect::get(&config, &JsValue::from_str("query"))
-                .unwrap_throw()),
-
+    pub(crate) fn from_js(js: js_sys::Object) -> Self {
+        Self {
+            inner: js,
             cx: Rc::new(WasmRefCell::new(Object::Nothing))
         }
     }
@@ -74,12 +60,20 @@ impl DataSource {
 
 impl expression::DataSource for DataSource {
     fn query(&self, query: impl AsRef<str>) -> Option<Object> {
-        let cx = value_to_js_object(self.cx.borrow().clone())
-            .unwrap_or(JsValue::null());
+        let cx = value_to_js_object(self.cx.borrow().clone())?;
 
-        match self.query_handler.call2(&JsValue::null(), &cx, &JsValue::from_str(query.as_ref())) {
+        match self.get_proxy()?.call2(&JsValue::null(), &cx, &JsValue::from_str(query.as_ref())) {
             Ok(value) => Some(js_value_to_object(value)?),
             Err(_) => None
+        }
+    }
+}
+
+impl DataSource {
+    fn get_proxy(&self) -> Option<js_sys::Function> {
+        match js_sys::Reflect::get(&self.inner, &JsValue::from_str("query")) {
+            Ok(value) if value.is_function() => Some(value.into()),
+            _ => None
         }
     }
 }
