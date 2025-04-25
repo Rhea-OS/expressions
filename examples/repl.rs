@@ -1,17 +1,9 @@
-use expression::Context;
-use expression::DataSource;
-use expression::Object;
-use std::fmt::Debug;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::BufWriter;
-use std::io::Write;
-
 /// A simple REPL to demonstrate the use of the expression crate.
 /// # Features:
-///  - Basic expression evaluation
-///  - Simple table for demonstrating addresses
-///  - Demonstrate complex usage of the API
+///  - Basic expression evaluation: [`repl.rs:169`](./#L169)
+///  - Simple table for demonstrating addresses: [`repl.rs:30`](./#L30)
+///  - A top-level `eval` function to demonstrate programmatic evaluation: [`repl.rs:137`](./#L137)
+///  - A `<<` operator to demonstrate operator registration: [`repl.rs:144`](./#L144)
 ///
 /// Type an expression into the REPL and press enter.
 /// The following commands are available:
@@ -23,6 +15,16 @@ use std::io::Write;
 /// # Addresses:
 /// Addresses are of the form `column:row` where `column` is the name of the column and `row` is the row number. Therefore, columns may contain `:`.
 
+use std::any::Any;
+use expression::Context;
+use expression::OperatorBuilder;
+use expression::DataSource;
+use expression::Object;
+use std::fmt::Debug;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::io::Write;
+
 #[derive(Debug, Clone)]
 struct Table {
     columns: Vec<String>,
@@ -31,6 +33,10 @@ struct Table {
 
 impl DataSource for Table {
     fn query(&self, query: impl AsRef<str>) -> Option<Object> {
+
+        // Parse the address into a usable format.
+        // Since the address is of the form `column:row`, we can split the address at the last `:`.
+
         let (column, row) = query.as_ref().split_at(query.as_ref().rfind(':')?);
         let col = self.columns.iter().position(|c| c == column)?;
 
@@ -126,12 +132,34 @@ mod commands {
 }
 
 pub fn main() {
-    let mut cx = Context::new(Table::empty(["a", "b", "c"]));
+    let mut cx = Context::new(Table::empty(["a", "b", "c"]))
+        .with_fn("eval", |cx, args| {
+            if let Some(Object::String(s)) = args.get(0) {
+                cx.evaluate(s)
+            } else {
+                Ok(Object::Nothing)
+            }
+        })
+        .with_operator(OperatorBuilder::new()
+            .operands(2)
+            .symbol("<<")
+            .handler(|args| {
+                let (Some(Object::Number(base)), Some(Object::Number(shift))) = (args.get(0), args.get(1)) else {
+                    return Err(expression::Error::other("<< requires two numbers"))
+                };
+
+                let base = *base as i64;
+                let shift = *shift as i64;
+
+                Ok(Object::Number((base << shift) as f64))
+            })
+            .build());
 
     loop {
         let cmd = prompt("> ");
 
         match cmd.trim() {
+            "" => continue,
             "/exit" => break,
             "/dump" => println!("{:#?}", cx.provider()),
             cmd if cmd.starts_with("/set ") => commands::set(&mut cx, cmd[5..].trim()),

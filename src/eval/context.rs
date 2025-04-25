@@ -1,21 +1,16 @@
-use crate::{
-    error::*
-    ,
-    eval::globals::get_standard_globals,
-    eval::operators::get_standard_operators,
-    eval::Object,
-    parse::objects::*,
-    DataSource
-};
-use alloc::{
-    borrow::ToOwned,
-    boxed::Box,
-    format,
-    string::String,
-    string::ToString,
-    vec::Vec
-};
+use crate::error::*;
+use crate::eval::globals::get_standard_globals;
+use crate::eval::operators::get_standard_operators;
+use crate::eval::Object;
+use crate::parse::objects::*;
+use crate::DataSource;
+use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
+use alloc::format;
 use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use nom::lib::std::collections::HashMap;
 
 /// # Context
@@ -28,7 +23,8 @@ use nom::lib::std::collections::HashMap;
 ///
 /// ## Example
 /// ```rust
-/// use expression::{Context, EmptyProvider};
+/// use expression::Context;
+/// use expression::EmptyProvider;
 ///
 /// let cx = Context::new(EmptyProvider::new());
 ///
@@ -107,14 +103,9 @@ where
 {
     pub fn new(provider: Provider) -> Self {
         Self {
-            globals: get_standard_globals()
-                .into_iter()
-                .collect(),
+            globals: get_standard_globals().into_iter().collect(),
             data_provider: Box::new(provider),
-            operators: get_standard_operators()
-                .into_iter()
-                .map(|op| (op.symbol.clone(), op))
-                .collect(),
+            operators: get_standard_operators().into_iter().map(|op| (op.symbol.clone(), op)).collect(),
         }
     }
 
@@ -123,14 +114,13 @@ where
     /// These may allow interaction with the host system, mathematical functions or other useful utility functions.
     ///
     /// ```rust
-    /// use expression::{
-    ///     Context,
-    ///     DataSource,
-    ///     EmptyProvider,
-    ///     eval::Object
-    /// };
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
     ///
-    /// let cx = Context::new(EmptyProvider::new()).with_global("PI", Object::Number(std::f64::consts::PI));
+    /// let cx =
+    ///     Context::new(EmptyProvider::new()).with_global("PI", Object::Number(std::f64::consts::PI));
     ///
     /// assert_eq!(cx.evaluate(r#"PI"#).unwrap(), std::f64::consts::PI);
     /// ```
@@ -144,12 +134,10 @@ where
     /// These may allow interaction with the host system, mathematical functions or other useful utility functions.
     ///
     /// ```rust
-    /// use expression::{
-    ///     Context,
-    ///     DataSource,
-    ///     EmptyProvider,
-    ///     eval::Object
-    /// };
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
     ///
     /// let mut cx = Context::new(EmptyProvider::new());
     /// cx.push_global("PI", Object::Number(std::f64::consts::PI));
@@ -164,25 +152,23 @@ where
     /// Operators are defined on the context object. These can be overridden, to produce custom operator behaviour.
     ///
     /// ```rust
-    /// use expression::{
-    ///     Context,
-    ///     DataSource,
-    ///     EmptyProvider,
-    ///     eval::Object,
-    ///     eval::context::OperatorBuilder
-    /// };
+    /// use expression::eval::context::OperatorBuilder;
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
     ///
-    /// let cx = Context::new(EmptyProvider::new())
-    ///     .with_operator(OperatorBuilder::new()
+    /// let cx = Context::new(EmptyProvider::new()).with_operator(
+    ///     OperatorBuilder::new()
     ///         .symbol("~")
     ///         .operands(1)
     ///         .precedence(10)
     ///         .handler(|args| {
-    ///
     ///             // Define an operator which nullifies the value
     ///             Ok(Object::Nothing)
     ///         })
-    ///         .build());
+    ///         .build(),
+    /// );
     ///
     /// assert_eq!(cx.evaluate(r#"2~10"#).unwrap(), Object::Nothing);
     /// ```
@@ -195,24 +181,24 @@ where
     /// Operators are defined on the context object. These can be overridden, to produce custom operator behaviour.
     ///
     /// ```rust
-    /// use expression::{
-    ///     Context,
-    ///     DataSource,
-    ///     EmptyProvider,
-    ///     eval::Object,
-    ///     eval::context::OperatorBuilder
-    /// };
+    /// use expression::eval::context::OperatorBuilder;
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
     ///
     /// let mut cx = Context::new(EmptyProvider::new());
-    /// cx.push_operator(OperatorBuilder::new()
-    ///     .symbol("~")
-    ///     .operands(1)
-    ///     .precedence(10)
-    ///     .handler(|args| {
-    ///         // Define an operator which nullifies the value
-    ///         Ok(Object::Nothing)
-    ///     })
-    ///     .build());
+    /// cx.push_operator(
+    ///     OperatorBuilder::new()
+    ///         .symbol("~")
+    ///         .operands(1)
+    ///         .precedence(10)
+    ///         .handler(|args| {
+    ///             // Define an operator which nullifies the value
+    ///             Ok(Object::Nothing)
+    ///         })
+    ///         .build(),
+    /// );
     ///
     /// assert_eq!(cx.evaluate(r#"2~10"#).unwrap(), Object::Nothing);
     /// ```
@@ -234,63 +220,81 @@ where
 
     fn evaluate_value(&self, value: Value) -> Result<Object> {
         match value {
-            Value::Expression(Expression { operands, operator }) => if let Some(operator) = self.operators.get(&operator) {
-                let operands = operands.into_iter()
-                    .map(|operand| self.evaluate_value(operand))
-                    .collect::<Result<Vec<_>>>()?;
+            Value::Expression(Expression { operands, operator }) =>
+                if let Some(operator) = self.operators.get(&operator) {
+                    let operands = operands
+                        .into_iter()
+                        .map(|operand| self.evaluate_value(operand))
+                        .collect::<Result<Vec<_>>>()?;
 
-                Ok((operator.handler)(&operands)?)
-            } else {
-                Err(ManualError::NoSuchOperator(operator).into())
-            }
+                    Ok((operator.handler)(&operands)?)
+                } else {
+                    Err(ManualError::NoSuchOperator(operator).into())
+                },
 
             Value::Literal(literal) => match literal {
                 Literal::Nothing => Ok(Object::Nothing),
                 Literal::Bool(bool) => Ok(Object::Boolean(bool)),
                 Literal::Number(number) => Ok(Object::Number(number)),
                 Literal::String(string) => Ok(Object::String(string)),
-                Literal::Name(name) => self.globals.get(name.as_str())
+                Literal::Name(name) => self
+                    .globals
+                    .get(name.as_str())
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                Literal::Address(address) => Ok(self.query(&address.query)
-                    .unwrap_or(Object::Nothing)),
-            }
+                Literal::Address(address) => Ok(self.query(&address.query).unwrap_or(Object::Nothing)),
+            },
 
-            Value::Call(Call { name, arguments }) => self.call_object(self.evaluate_value(*name)?, &arguments
-                .into_iter()
-                .map(|i| self.evaluate_value(i))
-                .collect::<Result<Vec<_>>>()?),
+            Value::Call(Call { name, arguments }) => self.call_object(
+                self.evaluate_value(*name)?,
+                &arguments
+                    .into_iter()
+                    .map(|i| self.evaluate_value(i))
+                    .collect::<Result<Vec<_>>>()?,
+            ),
 
             Value::Access(Access { left, member }) => match (self.evaluate_value(*left), member) {
-                (Ok(Object::AssociativeArray(array)), Literal::Name(ref name) | Literal::String(ref name)) => array.get(name)
-                    .cloned()
-                    .ok_or(ManualError::NoSuchValue(name.clone()).into()),
+                (Ok(Object::AssociativeArray(array)), Literal::Name(ref name) | Literal::String(ref name)) => array.get(name).cloned().ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                (Ok(Object::List(list)), Literal::Name(ref name) | Literal::String(ref name)) => name.parse::<usize>()
+                (Ok(Object::List(list)), Literal::Name(ref name) | Literal::String(ref name)) => name
+                    .parse::<usize>()
                     .ok()
                     .and_then(|index| list.get(index))
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(name.clone()).into()),
 
-                (Ok(Object::List(list)), Literal::Number(ref name)) => list.get(*name as usize)
+                (Ok(Object::List(list)), Literal::Number(ref name)) => list
+                    .get(*name as usize)
                     .cloned()
                     .ok_or(ManualError::NoSuchValue(format!("{}", name)).into()),
 
                 (Ok(obj), _) => Err(ManualError::OperationNotValidForType(format!("Object of type '{}' does not exhibit any accessible members", obj.datatype())).into()),
-                (Err(err), _) => Err(err)
+                (Err(err), _) => Err(err),
             },
 
-            Value::List(list) => Ok(Object::List(list.items.into_iter()
-                .map(|i| self.evaluate_value(i))
-                .collect::<Result<Vec<_>>>()?)),
+            Value::List(list) => Ok(Object::List(
+                list.items
+                    .into_iter()
+                    .map(|i| self.evaluate_value(i))
+                    .collect::<Result<Vec<_>>>()?,
+            )),
 
-            Value::AssociativeArray(arr) => Ok(Object::AssociativeArray(arr.items.into_iter()
-                .map(|(key, value)| self.evaluate_value(value)
-                    .map(|value| (match key {
-                        Key::Name(str) | Key::String(str) => str
-                    }, value)))
-                .collect::<Result<HashMap<_, _>>>()?))
+            Value::AssociativeArray(arr) => Ok(Object::AssociativeArray(
+                arr.items
+                    .into_iter()
+                    .map(|(key, value)| {
+                        self.evaluate_value(value).map(|value| {
+                            (
+                                match key {
+                                    Key::Name(str) | Key::String(str) => str,
+                                },
+                                value,
+                            )
+                        })
+                    })
+                    .collect::<Result<HashMap<_, _>>>()?,
+            )),
         }
     }
 
@@ -313,12 +317,10 @@ impl<Provider: DataSource + Clone + 'static> Context<Provider> {
     /// Registers a function on the context. This function is a utility function that makes reusing the context object more convenient.
     ///
     /// ```rust
-    /// use expression::{
-    ///     Context,
-    ///     DataSource,
-    ///     EmptyProvider,
-    ///     eval::Object
-    /// };
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
     ///
     /// let mut cx = Context::new(EmptyProvider::new());
     /// cx.push_fn("example", |cx, args| {
@@ -330,14 +332,38 @@ impl<Provider: DataSource + Clone + 'static> Context<Provider> {
     /// // Prints the provider.
     /// assert_eq!(cx.evaluate(r#"example()"#).unwrap(), Object::Nothing);
     /// ```
-    pub fn push_fn<F>(&mut self, name: impl AsRef<str>, f: F)
+    pub fn push_fn<F>(&mut self, name: impl AsRef<str>, f: F) -> &mut Self
     where
-        F: Fn(Self, &[Object]) -> Result<Object> + 'static,
-    {
+        F: Fn(Self, &[Object]) -> Result<Object> + 'static, {
         let cx = self.clone();
-        self.push_global(name, Object::function(move |args| {
-            f(cx.clone(), &args)
-        }));
+        self.push_global(name, Object::function(move |args| f(cx.clone(), &args)));
+
+        self
+    }
+
+    /// # Functions
+    /// Registers a function on the context. This function is a utility function that makes reusing the context object more convenient.
+    ///
+    /// ```rust
+    /// use expression::eval::Object;
+    /// use expression::Context;
+    /// use expression::DataSource;
+    /// use expression::EmptyProvider;
+    ///
+    /// let mut cx = Context::new(EmptyProvider::new()).with_fn("example", |cx, args| {
+    ///     println!("{:?}", &cx.provider());
+    ///
+    ///     Ok(Object::Nothing)
+    /// });
+    ///
+    /// // Prints the provider.
+    /// assert_eq!(cx.evaluate(r#"example()"#).unwrap(), Object::Nothing);
+    /// ```
+    pub fn with_fn<F>(mut self, name: impl AsRef<str>, f: F) -> Self
+    where
+        F: Fn(Self, &[Object]) -> Result<Object> + 'static, {
+        self.push_fn(name, f);
+        self
     }
 }
 

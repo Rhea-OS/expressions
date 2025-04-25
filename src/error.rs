@@ -70,8 +70,15 @@ multi_error! { global();
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-use alloc::string::String;
+use alloc::borrow::ToOwned;
+use alloc::string::{String, ToString};
 pub use global::Error;
+
+impl global::Error {
+    pub fn other(message: impl AsRef<str>) -> Self {
+        Self::from(ManualError::OtherError(message.as_ref().to_owned()))
+    }
+}
 
 /// TODO: Document the error types used throughout the expression parser below.
 #[derive(Debug, Clone)]
@@ -85,6 +92,8 @@ pub enum ManualError {
     ConversionFailed,
     ExpectedType(String),
     EmptyResultSet(String),
+
+    OtherError(String)
 }
 
 impl core::error::Error for ManualError {}

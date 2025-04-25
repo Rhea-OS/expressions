@@ -21,6 +21,10 @@ pub enum Object {
 }
 
 impl Object {
+    pub fn string(str: impl AsRef<str>) -> Self {
+        Self::String(str.as_ref().to_owned())
+    }
+
     pub fn function(fun: impl Fn(Vec<Object>) -> Result<Object> + 'static) -> Self {
         Self::Function(Rc::new(fun))
     }
