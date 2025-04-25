@@ -9,9 +9,13 @@ class Table implements expr.DataSource {
         this.columns = columns;
     }
 
-    query(cx: any, query: string) {
+    query(query: string) {
         const [, col, row] = query.match(/^(.+):(\d+)$/) ?? [];
-        return this.data[Number(row) * this.columns.length + this.columns.indexOf(col)] ?? null;
+
+        if (this.columns.indexOf(col) === -1)
+            return undefined;
+
+        return this.data[Number(row) * this.columns.length + this.columns.indexOf(col)] ?? undefined;
     }
 
     set(address: string, value: any) {

@@ -42,6 +42,6 @@ declare module 'expression' {
     }
 
     interface DataSource {
-        query(cx: any, query: string): any;
+        query(query: string, cx: any): any;
     }
 }

@@ -1,8 +1,8 @@
 mod operator;
 mod context;
 mod datasource;
+mod convert;
 
-use wasm_bindgen::prelude::wasm_bindgen;
 // use expression
 pub use crate::datasource::*;
 pub use crate::context::*;

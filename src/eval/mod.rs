@@ -58,7 +58,26 @@ impl Display for Object {
 
 impl Debug for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            Object::Nothing => f.debug_struct("Nothing")
+                .finish(),
+            Object::Boolean(bool) => f.debug_tuple("Boolean")
+                .field(bool)
+                .finish(),
+            Object::Number(num) => f.debug_tuple("Number")
+                .field(num)
+                .finish(),
+            Object::String(str) => f.debug_tuple("String")
+                .field(str)
+                .finish(),
+            Object::Function(_) => write!(f, "<function>"),
+            Object::List(list) => f.debug_tuple("List")
+                .field(list)
+                .finish(),
+            Object::AssociativeArray(arr) => f.debug_tuple("AssociativeArray")
+                .field(arr)
+                .finish(),
+        }
     }
 }
 
