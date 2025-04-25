@@ -15,13 +15,18 @@
         "forceConsistentCasingInFileNames": true,
         "importHelpers": true,
         "strict": true,
+        "lib": [
+            "esnext",
+            "dom"
+        ],
         "paths": {
             "#mod/main.wasm": ["./build/mod/expression_js_bg.wasm", "./wasm.d.ts"],
             "#mod/util.js": ["./build/mod/expression_js_bg.js"],
-            "#mod/def.d.ts": ["./build/mod/expression_js.d.ts"]
+            "#mod/def.d.ts": ["./build/mod/expression_js.d.ts"],
+            "expression": ["./build/pkg"]
         }
     },
     "exclude": [
         "build"
-    ],
+    ]
 }
